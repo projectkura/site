@@ -31,17 +31,21 @@ const docsContentLoader = browserCollections.docs.createClientLoader({
 	component: (document, props: DocsContentProps) => {
 		const MDXContent = document.default;
 
-		return (
-			<DocsRuntimeProvider
-				value={{
+	return (
+		<DocsRuntimeProvider
+			value={{
 					currentPath: props.currentPath,
 					currentUrl: props.currentUrl,
 					markdownUrl: props.markdownUrl,
 					pageMap: props.pageMap,
 					graph: props.graph,
 					toc: document.toc,
-				}}
-			>
+			}}
+		>
+			<div className="space-y-4">
+				<Banner variant="rainbow" id="kura-docs">
+					Early Access — Documentation is actively evolving and may change without notice.
+				</Banner>
 				<DocsPage
 					toc={document.toc}
 					breadcrumb={{ enabled: true }}
@@ -60,8 +64,9 @@ const docsContentLoader = browserCollections.docs.createClientLoader({
 						<MDXContent components={getDocsMdxComponents()} />
 					</DocsBody>
 				</DocsPage>
-			</DocsRuntimeProvider>
-		);
+			</div>
+		</DocsRuntimeProvider>
+	);
 	},
 });
 
@@ -116,54 +121,49 @@ function DocsRoute() {
 	const data = useFumadocsLoader(loaderData);
 
 	return (
-		<>
-			<Banner variant="rainbow" id="kura-docs">
-				Early Access — Documentation is actively evolving and may change without notice.
-			</Banner>
-			<DocsLayout
-				tree={data.tree}
-				themeSwitch={{ enabled: false }}
-				nav={{
-					title: ({ className, ...props }) => (
-						<a
-							{...props}
-							className={`flex items-center gap-2 ${className ?? ""}`}
-							href="/"
-						>
-							<img src="/favicon-96x96.png" alt="Kura" className="h-7 w-7" />
-							<span className="font-display text-base font-extrabold tracking-tight text-white">
-								Kura
-							</span>
-						</a>
-					),
-					url: "/",
-					transparentMode: "none",
-				}}
-				links={[
-					{
-						text: "Discord",
-						url: "https://discord.gg/jtctcY2pvs",
-						type: "main",
-						external: true,
-					},
-					{
-						text: "Hosting",
-						url: "https://billing.1of1servers.com/aff.php?aff=264",
-						type: "main",
-						external: true,
-					},
-				]}
-				searchToggle={{ enabled: true }}
-			>
-				{docsContentLoader.useContent(loaderData.pagePath, {
-					lastUpdated: loaderData.lastUpdated,
-					markdownUrl: loaderData.markdownUrl,
-					currentPath: loaderData.currentPath,
-					currentUrl: loaderData.currentUrl,
-					pageMap: loaderData.pageMap,
-					graph: loaderData.graph,
-				})}
-			</DocsLayout>
-		</>
+		<DocsLayout
+			tree={data.tree}
+			themeSwitch={{ enabled: false }}
+			nav={{
+				title: ({ className, ...props }) => (
+					<a
+						{...props}
+						className={`flex items-center gap-2 ${className ?? ""}`}
+						href="/"
+					>
+						<img src="/favicon-96x96.png" alt="Kura" className="h-7 w-7" />
+						<span className="font-display text-base font-extrabold tracking-tight text-white">
+							Kura
+						</span>
+					</a>
+				),
+				url: "/",
+				transparentMode: "none",
+			}}
+			links={[
+				{
+					text: "Discord",
+					url: "https://discord.gg/jtctcY2pvs",
+					type: "main",
+					external: true,
+				},
+				{
+					text: "Hosting",
+					url: "https://billing.1of1servers.com/aff.php?aff=264",
+					type: "main",
+					external: true,
+				},
+			]}
+			searchToggle={{ enabled: true }}
+		>
+			{docsContentLoader.useContent(loaderData.pagePath, {
+				lastUpdated: loaderData.lastUpdated,
+				markdownUrl: loaderData.markdownUrl,
+				currentPath: loaderData.currentPath,
+				currentUrl: loaderData.currentUrl,
+				pageMap: loaderData.pageMap,
+				graph: loaderData.graph,
+			})}
+		</DocsLayout>
 	);
 }
