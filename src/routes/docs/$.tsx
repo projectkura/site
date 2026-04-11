@@ -82,6 +82,11 @@ const getDocsPage = createServerFn({ method: "GET" })
 			docsSource.getPages().map((page) => [page.path, page.url]),
 		);
 		const absolutePath = resolved.page.absolutePath;
+		const lastUpdated = absolutePath
+			? await stat(absolutePath)
+					.then((file) => file.mtime.toISOString())
+					.catch(() => undefined)
+			: undefined;
 
 		return {
 			pagePath: resolved.page.path,
@@ -92,7 +97,7 @@ const getDocsPage = createServerFn({ method: "GET" })
 			pageMap,
 			graph,
 			tree: await serializePageTree(),
-			lastUpdated: absolutePath ? (await stat(absolutePath)).mtime.toISOString() : undefined,
+			lastUpdated,
 		};
 	});
 
