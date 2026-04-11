@@ -48,7 +48,7 @@ const docsContentLoader = browserCollections.docs.createClientLoader({
 				tableOfContent={{ style: "clerk" }}
 				tableOfContentPopover={{ style: "clerk" }}
 			>
-				<Banner variant="rainbow" id="kura-docs" className="-mx-[var(--fd-page-padding)] -mt-[var(--fd-page-padding)] mb-4 w-[calc(100%+2*var(--fd-page-padding))]">
+				<Banner variant="rainbow" id="kura-docs" changeLayout={false} className="!relative -mx-4 -mt-6 mb-4 md:-mx-6 md:-mt-8 xl:-mx-8 xl:-mt-14">
 					Early Access: Documentation is actively evolving and may change without notice.
 				</Banner>
 				<DocsTitle>{document.frontmatter.title}</DocsTitle>
