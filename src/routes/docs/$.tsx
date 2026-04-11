@@ -42,29 +42,27 @@ const docsContentLoader = browserCollections.docs.createClientLoader({
 					toc: document.toc,
 			}}
 		>
-			<div className="space-y-4">
-				<Banner variant="rainbow" id="kura-docs">
-					Early Access — Documentation is actively evolving and may change without notice.
+			<DocsPage
+				toc={document.toc}
+				breadcrumb={{ enabled: true }}
+				tableOfContent={{ style: "clerk" }}
+				tableOfContentPopover={{ style: "clerk" }}
+			>
+				<Banner variant="rainbow" id="kura-docs" className="-mx-[var(--fd-page-padding)] -mt-[var(--fd-page-padding)] mb-4 w-[calc(100%+2*var(--fd-page-padding))]">
+					Early Access: Documentation is actively evolving and may change without notice.
 				</Banner>
-				<DocsPage
-					toc={document.toc}
-					breadcrumb={{ enabled: true }}
-					tableOfContent={{ style: "clerk" }}
-					tableOfContentPopover={{ style: "clerk" }}
-				>
-					<DocsTitle>{document.frontmatter.title}</DocsTitle>
-					<DocsDescription className="text-sm">
-						{document.frontmatter.description}
-					</DocsDescription>
-					<div className="flex flex-row items-center gap-2 border-b pb-4">
-						<MarkdownCopyButton markdownUrl={props.markdownUrl} />
-						<ViewOptionsPopover markdownUrl={props.markdownUrl} />
-					</div>
-					<DocsBody>
-						<MDXContent components={getDocsMdxComponents()} />
-					</DocsBody>
-				</DocsPage>
-			</div>
+				<DocsTitle>{document.frontmatter.title}</DocsTitle>
+				<DocsDescription className="text-sm">
+					{document.frontmatter.description}
+				</DocsDescription>
+				<div className="flex flex-row items-center gap-2 border-b pb-4">
+					<MarkdownCopyButton markdownUrl={props.markdownUrl} />
+					<ViewOptionsPopover markdownUrl={props.markdownUrl} />
+				</div>
+				<DocsBody>
+					<MDXContent components={getDocsMdxComponents()} />
+				</DocsBody>
+			</DocsPage>
 		</DocsRuntimeProvider>
 	);
 	},
