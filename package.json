@@ -1,0 +1,42 @@
+{
+  "name": "kura",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "start": "node .output/server/index.mjs",
+    "preview": "vite preview",
+    "docs:links": "bun scripts/docs-links.ts",
+    "check": "biome check --write .",
+    "lint": "biome lint .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.11",
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "nitro": "^3.0.260311-beta",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.8"
+  },
+  "dependencies": {
+    "@fumadocs/cli": "^1.3.5",
+    "@orama/orama": "^3.1.18",
+    "@tanstack/react-router": "^1.168.12",
+    "@tanstack/react-start": "^1.167.19",
+    "@types/mdx": "^2.0.13",
+    "fumadocs-core": "^16.7.11",
+    "fumadocs-mdx": "^14.2.11",
+    "fumadocs-typescript": "^5.2.2",
+    "fumadocs-ui": "^16.7.11",
+    "lucide-react": "^1.8.0",
+    "next-validate-link": "^1.6.4",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  }
+}

@@ -1,0 +1,44 @@
+# dependencies (bun install)
+node_modules
+
+# output
+out
+dist
+.output
+.vite
+.vercel
+coverage
+*.tgz
+
+# generated
+src/routeTree.gen.ts
+
+# logs
+logs
+*.log
+dev-out.txt
+dev-err.txt
+report.*.json
+*.lcov
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# bun / tool caches
+.bun
+.agents
+
+# IntelliJ based IDEs
+.idea
+
+# Finder (MacOS) folder config
+.DS_Store

@@ -1,0 +1,229 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/preset.css";
+@import "fumadocs-ui/css/neutral.css";
+
+@theme {
+	--color-void: #08080e;
+	--color-deep: #0c0c14;
+	--color-surface: #12121c;
+	--color-elevated: #1a1a26;
+	--color-border: #1e1e2a;
+	--color-muted: #5c5c72;
+	--color-text: #9d9db5;
+	--color-bright: #cdcde0;
+	--color-white: #ededf5;
+
+	--color-accent: #7c5cfc;
+	--color-accent-light: #a78bfa;
+	--color-accent-dim: #5b3fd4;
+	--color-accent-glow: #7c5cfc33;
+
+	--color-green: #34d399;
+	--color-amber: #fbbf24;
+	--color-rose: #fb7185;
+	--color-sky: #38bdf8;
+
+	--font-display: "Bricolage Grotesque", system-ui, sans-serif;
+	--font-hero: "Outfit", system-ui, sans-serif;
+	--font-body: "Manrope", system-ui, sans-serif;
+	--font-mono: "JetBrains Mono", monospace;
+}
+
+/* Bricolage Grotesque — editorial display with optical sizing */
+@font-face {
+	font-family: "Bricolage Grotesque";
+	font-style: normal;
+	font-weight: 200 800;
+	font-display: swap;
+	src: url("https://fonts.gstatic.com/s/bricolagegrotesque/v11/3y9U6as8bTXq_nANBjzKo3IeZx8z6up5BeSl5jBNz_19PcbfJHoSE-ePfHk.woff2")
+		format("woff2");
+}
+
+/* Outfit — geometric, clean, excellent at large sizes */
+@font-face {
+	font-family: "Outfit";
+	font-style: normal;
+	font-weight: 100 900;
+	font-display: swap;
+	src: url("https://fonts.gstatic.com/s/outfit/v14/QGYyz_MVcBeNP4NjuGObqx1XmO1I4TC1C4G-EiAou6Y.woff2")
+		format("woff2");
+}
+
+/* Manrope — geometric humanist body */
+@font-face {
+	font-family: "Manrope";
+	font-style: normal;
+	font-weight: 200 800;
+	font-display: swap;
+	src: url("https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRggexSg.woff2")
+		format("woff2");
+}
+
+@font-face {
+	font-family: "JetBrains Mono";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("https://fonts.gstatic.com/s/jetbrainsmono/v21/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxTOlOV.woff2")
+		format("woff2");
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	scroll-behavior: smooth;
+	scroll-padding-top: 5rem;
+	color-scheme: dark;
+}
+
+body {
+	font-family: var(--font-body);
+	background: var(--color-void);
+	color: var(--color-text);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	overflow-x: hidden;
+}
+
+::selection {
+	background: var(--color-accent);
+	color: white;
+}
+
+@keyframes enter {
+	from {
+		opacity: 0;
+		transform: translateY(16px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.reveal {
+	animation: enter 0.6s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+:root,
+.dark {
+	--color-fd-background: var(--color-void);
+	--color-fd-foreground: var(--color-bright);
+	--color-fd-muted: color-mix(in srgb, var(--color-surface) 88%, black);
+	--color-fd-muted-foreground: color-mix(in srgb, var(--color-text) 78%, white);
+	--color-fd-popover: color-mix(in srgb, var(--color-deep) 92%, black);
+	--color-fd-popover-foreground: var(--color-bright);
+	--color-fd-card: color-mix(in srgb, var(--color-deep) 90%, black);
+	--color-fd-card-foreground: var(--color-bright);
+	--color-fd-border: color-mix(in srgb, var(--color-border) 92%, white 8%);
+	--color-fd-primary: var(--color-accent-light);
+	--color-fd-primary-foreground: var(--color-white);
+	--color-fd-secondary: color-mix(in srgb, var(--color-surface) 82%, white 4%);
+	--color-fd-secondary-foreground: var(--color-bright);
+	--color-fd-accent: color-mix(in srgb, var(--color-accent) 16%, transparent);
+	--color-fd-accent-foreground: var(--color-white);
+	--color-fd-ring: var(--color-accent);
+	--color-fd-overlay: rgb(4 4 10 / 0.72);
+}
+
+body [data-theme-toggle],
+body [data-theme-switch] {
+	display: none !important;
+}
+
+.fd-layout {
+	--fd-layout-width: 1300px;
+	--fd-toc-width: 18rem;
+}
+
+.fd-nav,
+.fd-sidebar,
+.fd-page {
+	backdrop-filter: blur(18px);
+}
+
+.fd-nav {
+	background:
+		linear-gradient(to bottom, rgb(6 6 12 / 0.92), rgb(6 6 12 / 0.7)),
+		radial-gradient(circle at top, var(--color-accent-glow), transparent 45%);
+	border-color: rgb(255 255 255 / 0.06);
+}
+
+.fd-sidebar,
+.fd-page [data-search-full] {
+	background-color: rgb(10 10 18 / 0.78);
+}
+
+.fd-sidebar,
+.fd-page,
+.fd-card,
+.fd-popover {
+	border-color: rgb(255 255 255 / 0.06);
+}
+
+.fd-page .prose {
+	--tw-prose-body: color-mix(in srgb, var(--color-bright) 88%, transparent);
+	--tw-prose-headings: var(--color-white);
+	--tw-prose-links: var(--color-white);
+	--tw-prose-bold: var(--color-white);
+	--tw-prose-quotes: var(--color-bright);
+	--tw-prose-code: var(--color-bright);
+	max-width: none;
+}
+
+.fd-page .prose a {
+	text-decoration-color: rgb(167 139 250 / 0.55);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.26em;
+}
+
+.fd-page .prose h1,
+.fd-page .prose h2,
+.fd-page .prose h3,
+.fd-page .prose h4,
+.fd-page .prose h5,
+.fd-page .prose h6 {
+	font-family: var(--font-display);
+	letter-spacing: -0.03em;
+}
+
+.fd-page .prose pre,
+.fd-card,
+.fd-popover,
+.fd-sidebar [data-radix-collection-item],
+.fd-page [data-search-full],
+.fd-page button,
+.fd-page a {
+	border-radius: 1rem;
+}
+
+.fd-page .prose pre {
+	background:
+		linear-gradient(180deg, rgb(17 17 28 / 0.98), rgb(10 10 18 / 0.98)),
+		radial-gradient(circle at top right, rgb(124 92 252 / 0.15), transparent 35%);
+	box-shadow: 0 24px 80px rgb(0 0 0 / 0.32);
+}
+
+.kura-docs-graph {
+	position: relative;
+	overflow: hidden;
+	border: 1px solid rgb(255 255 255 / 0.06);
+	background: var(--color-fd-card);
+	padding: 1.25rem;
+	border-radius: 0.75rem;
+}
+
+.kura-docs-graph svg {
+	width: 100%;
+	height: auto;
+}
+
+.kura-docs-graph-label {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	letter-spacing: 0.04em;
+}
