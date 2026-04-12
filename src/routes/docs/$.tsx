@@ -10,6 +10,7 @@ import {
 	ViewOptionsPopover,
 } from "fumadocs-ui/layouts/docs/page";
 import { DocsLayout } from "fumadocs-ui/layouts/docs";
+import { GithubIcon } from "~/components/icons";
 import { Banner } from "fumadocs-ui/components/banner";
 import { getDocsMdxComponents } from "~/components/docs-mdx";
 import { DocsRuntimeProvider } from "~/components/docs-runtime";
@@ -139,6 +140,12 @@ function DocsRoute() {
 				transparentMode: "none",
 			}}
 			links={[
+				{
+					icon: <GithubIcon className="h-4 w-4" />,
+					url: "https://github.com/projectkura",
+					type: "icon",
+					external: true,
+				},
 				{
 					text: "Discord",
 					url: "https://discord.gg/jtctcY2pvs",
