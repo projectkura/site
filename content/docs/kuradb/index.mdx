@@ -1,0 +1,62 @@
+---
+title: KuraDB
+description: Asynchronous PostgreSQL wrapper with a typesafe Lua ORM.
+---
+
+# Installation Guide
+
+Follow these steps to get **KuraDB** up and running on your server.
+
+<Callout type="error" title="Compatibility Warning">
+  KuraDB is **not compatible** with `oxmysql`, `mysql-async`, or `ghmattimysql`. Remove these resources from your server before installing KuraDB to prevent conflicts.
+</Callout>
+
+<Steps>
+
+<Step>
+
+### Install PostgreSQL
+
+KuraDB is built specifically for PostgreSQL to leverage its advanced asynchronous capabilities.
+
+1. Download the PostgreSQL installer from the [official website](https://www.postgresql.org/download/).
+2. Install PostgreSQL on your server machine.
+3. During setup, take note of your **username**, **password**, and **port** (default is `5432`).
+4. Create a new database (e.g. `fivem`).
+
+</Step>
+
+<Step>
+
+### Download KuraDB
+
+1. Navigate to the [KuraDB GitHub Releases](https://github.com/projectkura/kuradb).
+2. Download the latest version.
+3. Extract the folder into your server's `resources` directory and ensure it is named `kuradb`.
+
+</Step>
+
+<Step>
+
+### Configure
+
+Add the following to your `server.cfg`:
+
+```bash
+ensure kuradb
+
+set kuradb_connection_string "postgres://root:password69@localhost:5432/fivem"
+```
+
+<Callout type="warn" title="Special Characters Warning">
+  Avoid using the following characters in your database username or password, as they have special meanings in connection string URIs and will cause errors:
+  `;` `,` `/` `?` `:` `@` `&` `=` `+` `$` `#`
+</Callout>
+
+</Step>
+
+</Steps>
+
+### Verification
+
+Once your server starts, check the console for the KuraDB initialization success message.

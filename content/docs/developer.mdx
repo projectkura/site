@@ -1,0 +1,161 @@
+---
+title: Developer Guide
+description: How to write clean, performant scripts for Project Kura.
+---
+
+This guide covers what you need to know when building scripts on top of Kura. Following these practices will save you time debugging and make your code easier to maintain as the framework evolves.
+
+---
+
+## Working with Kura
+
+**Do not query Kura's database tables directly.** Use the exports provided. Direct queries will break when the schema changes. If an export does not cover what you need, open an issue.
+
+**Do not modify framework files.** Patching core makes updating painful and debugging confusing. If you need behavior that does not exist, open an issue first. The solution is almost always a config option, an event, or a small export change.
+
+**Do not use deprecated exports or events.** They will be removed. Replace them now.
+
+**Do not write raw SQL in your scripts.** Use [KuraDB's ORM](https://replace-me) for all database interactions. Raw queries are harder to maintain, more prone to mistakes, and bypass the safety guarantees the ORM provides.
+
+---
+
+## Naming
+
+### Lua
+
+| Context | Style | Example |
+|---|---|---|
+| Local variables and functions | `camelCase` | `playerHealth`, `getClosestPed` |
+| Global variables and functions | `PascalCase` | `PlayerData`, `GetPlayerJob` |
+| Booleans | Verb prefix | `isOnDuty`, `hasWeapon`, `canSpawn` |
+| Tables used as lists | Plural | `players`, `spawnPoints` |
+
+Write names out fully. `vehicleNetworkId` is not slower to type than `vehNetId`, and it is much easier to read months later.
+
+### JavaScript / TypeScript
+
+`camelCase` for variables and functions, `PascalCase` for classes and types, `SCREAMING_SNAKE_CASE` for module-level constants. Follow the [Google JS Style Guide](https://google.github.io/styleguide/jsguide.html) and [Google TS Style Guide](https://google.github.io/styleguide/tsguide.html).
+
+---
+
+## Performance
+
+### Threads
+
+Only create a thread when there is no event-driven alternative. Every thread adds overhead per tick, even when sleeping.
+
+When you do use threads for distance or proximity checks, adapt the wait time to distance. Polling at 2000ms when a player is 300 meters away is fine. Polling at 0ms when they are nowhere near is not.
+
+Scope threads to the players that actually need them. Job-specific loops should start when a player receives that job and stop when they leave it.
+
+### Common Lua habits
+
+Prefer vector math over the native distance function:
+
+```lua
+-- Avoid
+GetDistanceBetweenCoords(x1, y1, z1, x2, y2, z2, true)
+
+-- Prefer
+#(vector3(x1, y1, z1) - vector3(x2, y2, z2))
+```
+
+Append to tables by index rather than calling `table.insert`:
+
+```lua
+myList[#myList + 1] = value
+```
+
+In hot loops, cache globals as locals at the top of the file:
+
+```lua
+local getEntityCoords = GetEntityCoords
+local playerPedId = PlayerPedId
+```
+
+---
+
+## Security
+
+Validate and apply anything that affects money, inventory, or persistent state on the server. The client can send whatever it wants.
+
+```lua
+-- Avoid: client decides the amount
+RegisterNetEvent('myScript:addMoney', function(amount)
+    exports.kura:addMoney(source, amount)
+end)
+
+-- Correct: server determines the amount
+RegisterNetEvent('myScript:claimReward', function()
+    if isEligibleForReward(source) then
+        exports.kura:addMoney(source, REWARD_AMOUNT)
+    end
+end)
+```
+
+Visual and UI logic that has no economy impact is fine to run client-side.
+
+---
+
+## Code Structure
+
+**No globals unless necessary.** Declare everything `local`. Global variables persist for the lifetime of the resource and can silently collide with other scripts.
+
+**No duplication.** If the same logic appears in two places, it belongs in a function.
+
+**Annotate exported functions.** Any function in your public API should have LuaLS annotations so other developers know what to pass in and what to expect back.
+
+```lua
+--- Returns the player's current job.
+---@param source number Server ID of the player.
+---@return string name Job name.
+---@return number grade Job grade.
+function GetPlayerJob(source)
+    -- ...
+end
+```
+
+**Keep configs static.** Config files should return a table and never be written to at runtime. If your code needs to mutate a config value, that value belongs in state, not config.
+
+```lua
+-- config/client.lua
+return {
+    interactionDistance = 2.0,
+    blipScale = 0.8,
+}
+```
+
+Split configs by context: `config/client.lua`, `config/server.lua`, `config/shared.lua`.
+
+---
+
+## Commits and Pull Requests
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) and must be 72 characters or fewer on the first line.
+
+| Prefix | Use for |
+|---|---|
+| `fix:` | Bug fixes |
+| `feat:` | New features |
+| `refactor:` | Code changes with no behavior change |
+| `chore:` | Non-production changes |
+| `docs:` | Documentation only |
+
+Append `!` and a `BREAKING CHANGE:` footer for anything that breaks the existing API.
+
+Pull requests should be small and focused on one thing. If your PR touches multiple concerns, split it up. Contributions not tied to an open issue should be discussed first, either in an issue or in the community Discord.
+
+---
+
+## Release Checklist
+
+Before tagging a release:
+
+- No lint errors, no leftover debug `print` calls
+- No deprecated functions in use
+- Resource only reads and writes to tables it owns
+- Config follows the module pattern and is never mutated at runtime
+- No known bugs, README reflects current behavior
+- All dependencies declared in `fxmanifest.lua` and enforced with a version check at startup
+- Public API is documented
+- A version check runs as the first thing on resource start

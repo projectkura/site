@@ -2,6 +2,10 @@
   "title": "Kura Docs",
   "pages": [
     "getting-started",
-    "installation"
+    "installation",
+    "developer",
+    "---Resources---",
+    "core",
+    "kuradb"
   ]
 }
