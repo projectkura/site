@@ -1,0 +1,157 @@
+---
+title: Raw SQL
+description: Execute raw PostgreSQL queries when you need full control.
+---
+
+The raw SQL API lives on `kura.db.raw`. Use it for complex queries, joins, CTEs, or anything the query builder doesn't cover.
+
+<Callout type="info">
+  PostgreSQL uses `$1`, `$2`, `$3` for parameter placeholders — not `?`.
+</Callout>
+
+## query
+
+Returns all matching rows as a table.
+
+```lua
+local rows = kura.db.raw.query.await(
+  'SELECT * FROM "public"."users" WHERE job = $1',
+  { 'police' }
+)
+```
+
+## single
+
+Returns the first row, or `nil` if no rows match.
+
+```lua
+local user = kura.db.raw.single.await(
+  'SELECT * FROM "public"."users" WHERE id = $1',
+  { userId }
+)
+```
+
+## scalar
+
+Returns a single value from the first row.
+
+```lua
+local count = kura.db.raw.scalar.await('SELECT COUNT(*) FROM "public"."users"')
+```
+
+## update
+
+Executes an update and returns the number of affected rows.
+
+```lua
+local changed = kura.db.raw.update.await(
+  'UPDATE "public"."users" SET last_seen_at = NOW() WHERE id = $1',
+  { userId }
+)
+```
+
+## insert
+
+Executes an insert and returns the inserted `id`. Automatically appends `RETURNING id` for simple inserts without an existing `RETURNING` clause.
+
+```lua
+local id = kura.db.raw.insert.await(
+  'INSERT INTO "public"."users" (license) VALUES ($1)',
+  { license }
+)
+```
+
+## execute
+
+Execute the same statement with multiple parameter sets:
+
+```lua
+local results = kura.db.raw.execute.await(
+  'UPDATE "public"."users" SET cash = cash + $1 WHERE id = $2',
+  {
+    { 100, 1 },
+    { 250, 2 },
+  }
+)
+```
+
+## batch
+
+The fast path for repeated prepared statements. Uses PostgreSQL's pipeline mode for maximum throughput.
+
+```lua
+local rows = kura.db.raw.batch.await(
+  'SELECT id FROM "public"."users" WHERE license = $1 LIMIT 1',
+  {
+    { 'license:1' },
+    { 'license:2' },
+  },
+  { prepare = true }
+)
+```
+
+## insertMany
+
+Multi-row insert optimized for bulk operations:
+
+```lua
+local ids = kura.db.raw.insertMany.await('users', {
+  { license = 'license:1', cash = 500 },
+  { license = 'license:2', cash = 750 },
+}, {
+  returning = 'id',
+})
+```
+
+<Callout type="info">
+  Always prefer `insertMany` over looping `insert()` — it generates a single multi-row statement.
+</Callout>
+
+## Pub/Sub
+
+PostgreSQL `LISTEN` / `NOTIFY` exposed directly.
+
+### listen
+
+```lua
+local subscription = kura.db.raw.listen.await('player_banned', function(payload)
+  local data = json.decode(payload)
+  DropPlayer(data.serverId, 'Banned by admin panel')
+end)
+```
+
+### notify
+
+```lua
+kura.db.raw.notify.await('player_banned', json.encode({ serverId = 1 }))
+```
+
+### unlisten
+
+```lua
+kura.db.raw.unlisten.await(subscription.id)
+```
+
+## COPY
+
+Bulk ingest and export using PostgreSQL's `COPY` protocol.
+
+### copyFrom
+
+```lua
+kura.db.raw.copyFrom.await(
+  'COPY users (license, cash) FROM STDIN WITH (FORMAT csv)',
+  {
+    'license:1,500\n',
+    'license:2,750\n',
+  }
+)
+```
+
+### copyTo
+
+```lua
+local csv = kura.db.raw.copyTo.await(
+  'COPY users (license, cash) TO STDOUT WITH (FORMAT csv)'
+)
+```

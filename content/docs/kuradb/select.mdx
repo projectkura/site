@@ -1,0 +1,122 @@
+---
+title: Select
+description: Query rows from your database using the chainable select builder.
+---
+
+## Basic select
+
+Select all rows and all columns from a table:
+
+<Tabs items={["Lua", "TypeScript"]}>
+<Tab value="Lua">
+```lua
+local rows = kura.db.select():from('users'):await()
+```
+</Tab>
+<Tab value="TypeScript">
+```ts
+const rows = await db.select().from(users);
+```
+</Tab>
+</Tabs>
+
+## Partial select
+
+Pick specific columns:
+
+<Tabs items={["Lua", "TypeScript"]}>
+<Tab value="Lua">
+```lua
+local rows = kura.db.select({ 'id', 'username' }):from('users'):await()
+```
+</Tab>
+<Tab value="TypeScript">
+```ts
+const rows = await db.select({ id: 'id', name: 'username' }).from(users);
+```
+</Tab>
+</Tabs>
+
+## Filtering
+
+Use operators to filter results. `op` is available globally.
+
+<Tabs items={["Lua", "TypeScript"]}>
+<Tab value="Lua">
+```lua
+local rows = kura.db.select()
+  :from('users')
+  :where(op.eq('id', 42))
+  :await()
+```
+</Tab>
+<Tab value="TypeScript">
+```ts
+import { eq } from './queryBuilder/operators';
+
+const rows = await db.select().from(users).where(eq('id', 42));
+```
+</Tab>
+</Tabs>
+
+### Combining filters
+
+<Tabs items={["Lua", "TypeScript"]}>
+<Tab value="Lua">
+```lua
+local rows = kura.db.select()
+  :from('users')
+  :where(op.and_(
+    op.eq('job', 'police'),
+    op.gt('level', 3),
+    op.isNull('deleted_at')
+  ))
+  :await()
+```
+</Tab>
+<Tab value="TypeScript">
+```ts
+import { and, eq, gt, isNull } from './queryBuilder/operators';
+
+const rows = await db.select()
+  .from(users)
+  .where(and(eq('job', 'police'), gt('level', 3), isNull('deleted_at')));
+```
+</Tab>
+</Tabs>
+
+## Order, limit, offset
+
+```lua
+local rows = kura.db.select()
+  :from('users')
+  :where(op.lt('id', 100))
+  :orderBy({ created_at = 'desc' })
+  :limit(10)
+  :offset(20)
+  :await()
+```
+
+## Inspect the generated SQL
+
+<Tabs items={["Lua", "TypeScript"]}>
+<Tab value="Lua">
+```lua
+local sql, params = kura.db.select()
+  :from('users')
+  :where(op.eq('username', 'john'))
+  :toSQL()
+
+-- sql:    SELECT * FROM "public"."users" WHERE "username" = $1
+-- params: { 'john' }
+```
+</Tab>
+<Tab value="TypeScript">
+```ts
+const { sql, parameters } = db.select()
+  .from(users)
+  .where(eq('username', 'john'))
+  .toSQL();
+```
+</Tab>
+</Tabs>

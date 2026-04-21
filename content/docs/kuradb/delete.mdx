@@ -1,0 +1,47 @@
+---
+title: Delete
+description: Delete rows from your database using the query builder.
+---
+
+## Basic delete
+
+<Tabs items={["Lua", "TypeScript"]}>
+<Tab value="Lua">
+```lua
+kura.db.delete('users'):where(op.eq('id', userId)):await()
+```
+</Tab>
+<Tab value="TypeScript">
+```ts
+await db.delete(users).where(eq('id', userId));
+```
+</Tab>
+</Tabs>
+
+## Returning
+
+Get the deleted row back:
+
+```lua
+local deleted = kura.db.delete('users')
+  :where(op.eq('id', userId))
+  :returning({ 'id', 'username' })
+  :await()
+```
+
+## Soft deletes
+
+A common pattern is to use a `deleted_at` column instead of actually removing rows:
+
+```lua
+kura.db.update('users')
+  :set({ deleted_at = os.time() })
+  :where(op.eq('id', userId))
+  :await()
+
+-- Query only active records
+local active = kura.db.select()
+  :from('users')
+  :where(op.isNull('deleted_at'))
+  :await()
+```

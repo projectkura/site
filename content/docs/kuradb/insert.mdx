@@ -1,0 +1,60 @@
+---
+title: Insert
+description: Insert rows into your database using the query builder.
+---
+
+## Basic insert
+
+<Tabs items={["Lua", "TypeScript"]}>
+<Tab value="Lua">
+```lua
+kura.db.insert('users')
+  :values({ username = 'john', email = 'john@example.com' })
+  :await()
+```
+</Tab>
+<Tab value="TypeScript">
+```ts
+await db.insert(users).values({ username: 'john', email: 'john@example.com' });
+```
+</Tab>
+</Tabs>
+
+## Returning
+
+Get the inserted row back:
+
+<Tabs items={["Lua", "TypeScript"]}>
+<Tab value="Lua">
+```lua
+local id = kura.db.insert('users')
+  :values({ username = 'john', email = 'john@example.com' })
+  :returning({ 'id' })
+  :await()
+```
+</Tab>
+<Tab value="TypeScript">
+```ts
+const id = await db.insert(users)
+  .values({ username: 'john', email: 'john@example.com' })
+  .returning(['id']);
+```
+</Tab>
+</Tabs>
+
+## Bulk insert
+
+For inserting many rows at once, use `raw.insertMany`:
+
+```lua
+local ids = kura.db.raw.insertMany.await('users', {
+  { license = 'license:1', cash = 500 },
+  { license = 'license:2', cash = 750 },
+}, {
+  returning = 'id',
+})
+```
+
+<Callout type="info">
+  `insertMany` uses a multi-row insert strategy and should always be preferred over looping `insert()`.
+</Callout>

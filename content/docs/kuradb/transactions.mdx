@@ -1,0 +1,80 @@
+---
+title: Transactions
+description: Atomic operations with imperative and declarative transaction APIs.
+---
+
+KuraDB provides two transaction APIs: **imperative** (callback-based) and **declarative** (query list).
+
+## Imperative transactions
+
+Use `kura.db.transaction` for full control. The callback receives a `query` function — return `true` to commit, `false` to rollback.
+
+```lua
+local ok = kura.db.transaction(function(query)
+  local balance = query(
+    'SELECT balance FROM "public"."accounts" WHERE id = $1',
+    { fromId }
+  )
+
+  if balance[1].balance < amount then
+    return false -- rollback
+  end
+
+  query('UPDATE "public"."accounts" SET balance = balance - $1 WHERE id = $2', { amount, fromId })
+  query('UPDATE "public"."accounts" SET balance = balance + $1 WHERE id = $2', { amount, toId })
+  return true -- commit
+end)
+```
+
+## Declarative transactions
+
+Use `kura.db.raw.transaction` to pass a list of queries that should all succeed or all fail:
+
+```lua
+local ok = kura.db.raw.transaction.await({
+  {
+    query = 'UPDATE "public"."accounts" SET balance = balance - $1 WHERE id = $2',
+    values = { amount, fromId },
+  },
+  {
+    query = 'UPDATE "public"."accounts" SET balance = balance + $1 WHERE id = $2',
+    values = { amount, toId },
+  },
+})
+```
+
+## TypeScript
+
+```ts
+import { kuradb } from '@your-scope/kuradb';
+
+const ok = await kuradb.startTransaction(async (query) => {
+  const result = await query(
+    'SELECT balance FROM "public"."accounts" WHERE id = $1',
+    [fromId]
+  );
+
+  if (result[0].balance < amount) return false;
+
+  await query('UPDATE "public"."accounts" SET balance = balance - $1 WHERE id = $2', [amount, fromId]);
+  await query('UPDATE "public"."accounts" SET balance = balance + $1 WHERE id = $2', [amount, toId]);
+  return true;
+});
+```
+
+## Transaction options
+
+Both APIs accept an options table:
+
+```lua
+kura.db.raw.transaction.await(queries, nil, {
+  isolationLevel = 'SERIALIZABLE',
+  readOnly = true,
+})
+```
+
+| Option | Type | Description |
+|---|---|---|
+| `isolationLevel` | `string` | `READ COMMITTED`, `REPEATABLE READ`, `READ UNCOMMITTED`, `SERIALIZABLE` |
+| `readOnly` | `boolean` | Read-only transaction |
+| `deferrable` | `boolean` | Deferrable transaction (only with `SERIALIZABLE`) |

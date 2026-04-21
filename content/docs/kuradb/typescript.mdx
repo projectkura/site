@@ -1,0 +1,90 @@
+---
+title: TypeScript
+description: Use KuraDB from TypeScript resources with full type safety.
+---
+
+KuraDB provides a typed TypeScript client at `lib/KuraDB.ts` that wraps the resource exports.
+
+## Query builder
+
+The query builder is available inside the `kuradb` resource. Builders are thenable — just `await` them:
+
+```ts
+import { db } from './queryBuilder';
+import { users } from './schema';
+import { eq, and, isNull } from './queryBuilder/operators';
+
+// Select
+const activeUsers = await db.select().from(users).where(isNull('deleted_at'));
+
+// Insert
+await db.insert(users).values({ username: 'john', email: 'john@example.com' });
+
+// Update
+await db.update(users).set({ username: 'jane' }).where(eq('id', userId));
+
+// Delete
+await db.delete(users).where(eq('id', userId));
+```
+
+## Raw SQL
+
+For complex queries beyond the builder:
+
+```ts
+import { kuradb } from '@your-scope/kuradb';
+
+const user = await kuradb.single<{ id: string; license: string }>(
+  'SELECT id, license FROM "public"."users" WHERE id = $1',
+  [userId]
+);
+```
+
+## API reference
+
+| Method | Returns | Description |
+|---|---|---|
+| `kuradb.query` | `Row[]` | Execute a query, return all rows |
+| `kuradb.single` | `Row \| null` | Return the first row |
+| `kuradb.scalar` | `T \| null` | Return a single value |
+| `kuradb.update` | `number` | Execute an update, return affected rows |
+| `kuradb.insert` | `T` | Execute an insert, return the inserted id |
+| `kuradb.prepare` | `T` | Execute a prepared statement |
+| `kuradb.rawExecute` | `T` | Execute with multiple parameter sets |
+| `kuradb.batch` | `T[]` | Pipeline multiple executions of the same statement |
+| `kuradb.insertMany` | `T` | Multi-row bulk insert |
+| `kuradb.transaction` | `boolean` | Declarative transaction (query list) |
+| `kuradb.startTransaction` | `boolean` | Imperative transaction (callback) |
+| `kuradb.notify` | `boolean` | Send a PostgreSQL `NOTIFY` |
+| `kuradb.listen` | `Subscription` | Subscribe to a PostgreSQL channel |
+| `kuradb.unlisten` | `boolean` | Unsubscribe from a channel |
+| `kuradb.copyFrom` | `{ bytes, chunks }` | Bulk ingest via `COPY FROM` |
+| `kuradb.copyTo` | `string` | Bulk export via `COPY TO` |
+| `kuradb.isReady` | `boolean` | Check if the connection pool is ready |
+| `kuradb.awaitConnection` | `true` | Wait for the pool to connect |
+| `kuradb.store` | `number` | Store a query string for reuse |
+
+## Connection
+
+Wait for the database to be ready before running queries:
+
+```ts
+kuradb.ready(() => {
+  console.log('KuraDB connected');
+});
+```
+
+Or use the async version:
+
+```ts
+await kuradb.awaitConnection();
+```
+
+## Schema exports
+
+The TypeScript helper re-exports all ORM utilities:
+
+```ts
+import { defineColumn, defineTable, defineSchema } from '@kuradb/lib/KuraDB';
+import type { ColumnDefinition, TableDefinition, SchemaDefinition } from '@kuradb/lib/KuraDB';
+```

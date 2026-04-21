@@ -1,0 +1,147 @@
+---
+title: Schema
+description: Define your database tables in TypeScript — the single source of truth for migrations, queries, and Lua types.
+---
+
+Your schema is defined once in `src/schema.ts`. From this single file, KuraDB generates SQL migrations, Lua type annotations, and table metadata for the query builder.
+
+## Columns
+
+Use `defineColumn` to declare a column:
+
+```ts
+import { defineColumn } from './orm';
+
+const id = defineColumn('id', 'uuid', { primaryKey: true });
+const username = defineColumn('username', 'string');
+const deletedAt = defineColumn('deleted_at', 'date', { nullable: true });
+const createdAt = defineColumn('created_at', 'date', { defaultExpression: 'NOW()' });
+```
+
+The first argument is the **SQL column name** (snake_case). The key you assign it to in the table object becomes the **TypeScript/Lua property name** (camelCase).
+
+### Column types
+
+| Kind | PostgreSQL | TypeScript | Notes |
+|---|---|---|---|
+| `'uuid'` | `UUID` | `string` | Best for primary keys |
+| `'string'` | `VARCHAR(255)` | `string` | Default string type |
+| `'number'` | `INTEGER` | `number` | 32-bit integer |
+| `'bigint'` | `BIGINT` | `bigint` | 64-bit integer |
+| `'boolean'` | `BOOLEAN` | `boolean` | |
+| `'date'` | `TIMESTAMP` | `Date` | |
+| `'json'` | `JSONB` | `object` | Binary JSON, queryable |
+| `'custom'` | `TEXT` | `unknown` | Fallback |
+
+### Column options
+
+| Option | Type | Description |
+|---|---|---|
+| `primaryKey` | `boolean` | Marks the column as `PRIMARY KEY` |
+| `nullable` | `boolean` | Allows `NULL` (default is `NOT NULL`) |
+| `defaultExpression` | `string` | Raw SQL default (e.g. `'NOW()'`, `'gen_random_uuid()'`) |
+| `encode` | `function` | Transform a value before writing to the database |
+| `decode` | `function` | Transform a value after reading from the database |
+
+### Custom encode / decode
+
+Use hooks for types that need transformation between TypeScript and SQL:
+
+```ts
+const metadata = defineColumn<Record<string, unknown>>('metadata', 'json', {
+  nullable: true,
+  encode: (value) => JSON.stringify(value),
+  decode: (raw) => typeof raw === 'string' ? JSON.parse(raw) : raw,
+});
+
+const createdAt = defineColumn<Date>('created_at', 'date', {
+  encode: (value) => value.toISOString(),
+  decode: (raw) => new Date(raw as string),
+});
+```
+
+## Tables
+
+Use `defineTable` to group columns:
+
+```ts
+import { defineTable, defineColumn } from './orm';
+
+export const users = defineTable('public', 'users', {
+  id: defineColumn('id', 'uuid', { primaryKey: true }),
+  username: defineColumn('username', 'string'),
+  email: defineColumn('email', 'string'),
+  passwordHash: defineColumn('password_hash', 'string'),
+  createdAt: defineColumn('created_at', 'date'),
+  updatedAt: defineColumn('updated_at', 'date'),
+  deletedAt: defineColumn('deleted_at', 'date', { nullable: true }),
+});
+```
+
+Arguments:
+1. **Schema name** — PostgreSQL schema, usually `'public'`
+2. **Table name** — The SQL table name
+3. **Columns** — Object mapping property names → column definitions
+
+The `primaryKey` is derived automatically from columns with `primaryKey: true`.
+
+## Schema
+
+Group all tables into a schema export:
+
+```ts
+import { defineSchema, defineTable, defineColumn } from './orm';
+
+export const users = defineTable('public', 'users', { /* ... */ });
+export const posts = defineTable('public', 'posts', { /* ... */ });
+
+export const schema = defineSchema('public', {
+  users,
+  posts,
+});
+```
+
+The schema object is consumed by:
+- `kuradb generate` — creates migration SQL and Lua types
+- `kuradb migrate` — applies migrations and regenerates types
+- The query builder — resolves table and schema names
+- The type generator — produces EmmyLua annotations
+
+## Full example
+
+A complete `src/schema.ts`:
+
+```ts
+import { defineColumn, defineSchema, defineTable } from './orm';
+
+export const characters = defineTable('public', 'characters', {
+  id: defineColumn('id', 'uuid', { primaryKey: true }),
+  ownerId: defineColumn('owner_id', 'uuid'),
+  firstName: defineColumn('first_name', 'string'),
+  lastName: defineColumn('last_name', 'string'),
+  dateOfBirth: defineColumn('date_of_birth', 'date'),
+  job: defineColumn('job', 'string'),
+  cash: defineColumn('cash', 'number'),
+  bank: defineColumn('bank', 'number'),
+  metadata: defineColumn('metadata', 'json', { nullable: true }),
+  createdAt: defineColumn('created_at', 'date', { defaultExpression: 'NOW()' }),
+  deletedAt: defineColumn('deleted_at', 'date', { nullable: true }),
+});
+
+export const vehicles = defineTable('public', 'vehicles', {
+  id: defineColumn('id', 'uuid', { primaryKey: true }),
+  ownerId: defineColumn('owner_id', 'uuid'),
+  model: defineColumn('model', 'string'),
+  plate: defineColumn('plate', 'string'),
+  garage: defineColumn('garage', 'string'),
+  fuel: defineColumn('fuel', 'number'),
+  body: defineColumn('body', 'number'),
+  engine: defineColumn('engine', 'number'),
+  properties: defineColumn('properties', 'json', { nullable: true }),
+});
+
+export const schema = defineSchema('public', {
+  characters,
+  vehicles,
+});
+```

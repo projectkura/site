@@ -1,0 +1,59 @@
+---
+title: Update
+description: Update existing rows using the query builder.
+---
+
+## Basic update
+
+<Tabs items={["Lua", "TypeScript"]}>
+<Tab value="Lua">
+```lua
+kura.db.update('users')
+  :set({ username = 'jane' })
+  :where(op.eq('id', userId))
+  :await()
+```
+</Tab>
+<Tab value="TypeScript">
+```ts
+await db.update(users).set({ username: 'jane' }).where(eq('id', userId));
+```
+</Tab>
+</Tabs>
+
+## Returning
+
+Get the updated row back:
+
+<Tabs items={["Lua", "TypeScript"]}>
+<Tab value="Lua">
+```lua
+local updated = kura.db.update('users')
+  :set({ username = 'jane' })
+  :where(op.eq('id', userId))
+  :returning({ 'id', 'username' })
+  :await()
+```
+</Tab>
+<Tab value="TypeScript">
+```ts
+const updated = await db.update(users)
+  .set({ username: 'jane' })
+  .where(eq('id', userId))
+  .returning(['id', 'username']);
+```
+</Tab>
+</Tabs>
+
+## Update with raw SQL
+
+For complex updates, use `raw.update`:
+
+```lua
+local changed = kura.db.raw.update.await(
+  'UPDATE "public"."users" SET last_seen_at = NOW() WHERE id = $1',
+  { userId }
+)
+```
+
+`raw.update` returns the number of affected rows.

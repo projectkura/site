@@ -1,59 +1,127 @@
 ---
 title: KuraDB
-description: Asynchronous PostgreSQL wrapper with a typesafe Lua ORM.
+description: Asynchronous PostgreSQL wrapper with a typesafe Lua ORM for FiveM.
 ---
-Follow these steps to get **KuraDB** up and running on your server.
 
-<Callout type="error" title="Compatibility Warning">
-  KuraDB is **not compatible** with `oxmysql`, `mysql-async`, or `ghmattimysql`. Remove these resources from your server before installing KuraDB to prevent conflicts.
+KuraDB is the database layer for Project Kura. It provides a high-performance, asynchronous PostgreSQL interface for FiveM with a chainable query builder, raw SQL helpers, schema-driven migrations, and auto-generated Lua types.
+
+<Callout type="error" title="Compatibility">
+  KuraDB is **not compatible** with `oxmysql`, `mysql-async`, or `ghmattimysql`. It is built exclusively for PostgreSQL. Remove any MySQL-based database resources before installing.
 </Callout>
 
-<Steps>
+---
 
-<Step>
+## Install PostgreSQL
 
-### Install PostgreSQL
+1. Download from the [official website](https://www.postgresql.org/download/)
+2. Install and note your **username**, **password**, and **port** (default `5432`)
+3. Create a database for your server
 
-KuraDB is built specifically for PostgreSQL to leverage its advanced asynchronous capabilities.
-
-1. Download the PostgreSQL installer from the [official website](https://www.postgresql.org/download/).
-2. Install PostgreSQL on your server machine.
-3. During setup, take note of your **username**, **password**, and **port** (default is `5432`).
-4. Create a new database (e.g. `fivem`).
-
-</Step>
-
-<Step>
-
-### Download KuraDB
-
-1. Navigate to the [KuraDB GitHub Releases](https://github.com/projectkura/kuradb).
-2. Download the latest version.
-3. Extract the folder into your server's `resources` directory and ensure it is named `kuradb`.
-
-</Step>
-
-<Step>
-
-### Configure
-
-Add the following to your `server.cfg`:
-
-```bash
-ensure kuradb
-
-set kuradb_connection_string "postgres://root:password69@localhost:5432/fivem"
+```sql
+CREATE DATABASE fivem;
 ```
 
-<Callout type="warn" title="Special Characters Warning">
-  Avoid using the following characters in your database username or password, as they have special meanings in connection string URIs and will cause errors:
-  `;` `,` `/` `?` `:` `@` `&` `=` `+` `$` `#`
+## Download KuraDB
+
+1. Get the latest release from [GitHub](https://github.com/projectkura/kuradb)
+2. Extract into your server's `resources` directory
+3. Ensure the folder is named `kuradb`
+
+## Configure your server
+
+Add to your `server.cfg`:
+
+```bash
+set kuradb_connection_string "postgres://root:password@localhost:5432/fivem"
+
+ensure kuradb
+```
+
+<Callout type="warn" title="Special Characters">
+  Avoid `;` `,` `/` `?` `:` `@` `&` `=` `+` `$` `#` in your database password — they have special meaning in connection URIs.
 </Callout>
 
-</Step>
+For Kura-native servers, use this start order:
 
-</Steps>
+```bash
+ensure kura-lib
+ensure kuradb
+ensure kura-core
+ensure kura-ui
+```
 
-### Verification
+---
 
-Once your server starts, check the console for the KuraDB initialization success message.
+## Add to your resource
+
+<Tabs items={["Kura-native", "Standalone"]}>
+<Tab value="Kura-native">
+Add to your `fxmanifest.lua`:
+
+```lua
+shared_scripts {
+    '@kura-core/init.lua',
+}
+```
+
+`kura.db` and `op` are available automatically.
+</Tab>
+<Tab value="Standalone">
+Add to your `fxmanifest.lua`:
+
+```lua
+server_scripts {
+    '@kuradb/lib/KuraDB.lua',
+    '@kuradb/lib/QueryBuilder.lua',
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## Your first query
+
+Once your resource is set up, you can start querying immediately. `op` is available globally after loading `QueryBuilder.lua`.
+
+```lua
+kura.db.ready(function()
+  local users = kura.db.select():from('users'):await()
+  print(#users .. ' users loaded')
+end)
+```
+
+```lua
+-- Insert
+kura.db.insert('users')
+  :values({ username = 'john', email = 'john@example.com' })
+  :await()
+
+-- Select with filter
+local cops = kura.db.select({ 'id', 'username' })
+  :from('users')
+  :where(op.eq('job', 'police'))
+  :await()
+
+-- Update
+kura.db.update('users')
+  :set({ username = 'jane' })
+  :where(op.eq('id', userId))
+  :await()
+
+-- Delete
+kura.db.delete('users')
+  :where(op.eq('id', userId))
+  :await()
+```
+
+---
+
+## What's next
+
+- [Configuration](/docs/kuradb/configuration) — Convars, pool tuning, debug mode
+- [Schema](/docs/kuradb/schema) — Define tables in TypeScript
+- [Migrations](/docs/kuradb/migrations) — Generate and apply SQL migrations
+- [Select](/docs/kuradb/select) — Query builder deep dive
+- [Raw SQL](/docs/kuradb/raw-sql) — Full PostgreSQL access
+- [Transactions](/docs/kuradb/transactions) — Atomic operations

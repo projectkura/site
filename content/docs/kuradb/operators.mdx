@@ -1,0 +1,93 @@
+---
+title: Operators
+description: Filter operators for the query builder.
+---
+
+Operators are used in `.where()` clauses on `select`, `update`, and `delete` builders. In Lua, `op` is available globally after loading `QueryBuilder.lua`.
+
+## Comparison
+
+| Lua | TypeScript | SQL |
+|---|---|---|
+| `op.eq('col', value)` | `eq('col', value)` | `"col" = $1` |
+| `op.ne('col', value)` | `ne('col', value)` | `"col" <> $1` |
+| `op.lt('col', value)` | `lt('col', value)` | `"col" < $1` |
+| `op.lte('col', value)` | `lte('col', value)` | `"col" <= $1` |
+| `op.gt('col', value)` | `gt('col', value)` | `"col" > $1` |
+| `op.gte('col', value)` | `gte('col', value)` | `"col" >= $1` |
+
+## Pattern matching
+
+| Lua | TypeScript | SQL |
+|---|---|---|
+| `op.like('col', '%john%')` | `like('col', '%john%')` | `"col" LIKE $1` |
+| `op.ilike('col', '%john%')` | `ilike('col', '%john%')` | `"col" ILIKE $1` |
+
+## Array
+
+| Lua | TypeScript | SQL |
+|---|---|---|
+| `op.inArray('col', {1, 2, 3})` | `inArray('col', [1, 2, 3])` | `"col" IN ($1, $2, $3)` |
+| `op.notInArray('col', {1, 2})` | `notInArray('col', [1, 2])` | `"col" NOT IN ($1, $2)` |
+
+## Null checks
+
+| Lua | TypeScript | SQL |
+|---|---|---|
+| `op.isNull('col')` | `isNull('col')` | `"col" IS NULL` |
+| `op.isNotNull('col')` | `isNotNull('col')` | `"col" IS NOT NULL` |
+
+## Logical
+
+Combine multiple conditions:
+
+<Tabs items={["Lua", "TypeScript"]}>
+<Tab value="Lua">
+```lua
+-- AND
+op.and_(
+  op.eq('job', 'police'),
+  op.gt('level', 3)
+)
+
+-- OR
+op.or_(
+  op.eq('job', 'police'),
+  op.eq('job', 'ambulance')
+)
+
+-- NOT
+op.not_(op.eq('banned', true))
+```
+</Tab>
+<Tab value="TypeScript">
+```ts
+// AND
+and(eq('job', 'police'), gt('level', 3))
+
+// OR
+or(eq('job', 'police'), eq('job', 'ambulance'))
+
+// NOT
+not(eq('banned', true))
+```
+</Tab>
+</Tabs>
+
+### Complex example
+
+```lua
+local rows = kura.db.select()
+  :from('users')
+  :where(op.and_(
+    op.or_(
+      op.eq('job', 'police'),
+      op.eq('job', 'ambulance')
+    ),
+    op.gte('level', 3),
+    op.isNull('deleted_at')
+  ))
+  :orderBy({ created_at = 'desc' })
+  :limit(25)
+  :await()
+```

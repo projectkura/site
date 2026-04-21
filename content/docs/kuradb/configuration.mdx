@@ -1,0 +1,47 @@
+---
+title: Configuration
+description: All KuraDB convars, their types, defaults, and what they control.
+---
+
+All configuration is done through FiveM convars in your `server.cfg`.
+
+## Connection
+
+```bash
+set kuradb_connection_string "postgres://root:password@localhost:5432/fivem"
+```
+
+The connection string must be a valid PostgreSQL URI with protocol `postgres://` or `postgresql://`.
+
+## Convars
+
+| Convar | Type | Default | Description |
+|---|---|---|---|
+| `kuradb_connection_string` | `string` | — | **Required.** PostgreSQL connection URI |
+| `kuradb_debug` | `bool\|json` | `false` | Enable debug logging. Pass `true` for all resources or `["res1","res2"]` to filter |
+| `kuradb_slow_query_warning` | `int` | `200` | Log queries slower than this (ms) |
+| `kuradb_log_size` | `int` | `100` | Max log entries kept in memory |
+| `kuradb_resultset_warning` | `int` | `1000` | Warn when a result set exceeds this row count |
+| `kuradb_transaction_isolation_level` | `int` | `2` | Default transaction isolation level |
+| `kuradb_connect_timeout` | `int` | `10` | Connection timeout in seconds |
+| `kuradb_idle_timeout` | `int` | `30` | Idle connection timeout in seconds |
+| `kuradb_max_connections` | `int` | `10` | Maximum pool size |
+| `kuradb_max_lifetime` | `int` | `1800` | Maximum connection lifetime in seconds |
+
+## Transaction isolation levels
+
+| Value | Level |
+|---|---|
+| `1` | `REPEATABLE READ` |
+| `2` | `READ COMMITTED` (default) |
+| `3` | `READ UNCOMMITTED` |
+| `4` | `SERIALIZABLE` |
+
+## Debug commands
+
+Toggle debug logging for specific resources at runtime from the txAdmin console:
+
+```bash
+kuradb_debug add myResource
+kuradb_debug remove myResource
+```
