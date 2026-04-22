@@ -23,12 +23,12 @@ await db.update(users).set({ username: 'jane' }).where(eq('id', userId));
 
 ## Returning
 
-Get the updated row back:
+Add a `RETURNING` clause to the generated SQL:
 
 <Tabs items={["Lua", "TypeScript"]}>
 <Tab value="Lua">
 ```lua
-local updated = kura.db.update('users')
+kura.db.update('users')
   :set({ username = 'jane' })
   :where(op.eq('id', userId))
   :returning({ 'id', 'username' })
@@ -37,13 +37,17 @@ local updated = kura.db.update('users')
 </Tab>
 <Tab value="TypeScript">
 ```ts
-const updated = await db.update(users)
+await db.update(users)
   .set({ username: 'jane' })
   .where(eq('id', userId))
   .returning(['id', 'username']);
 ```
 </Tab>
 </Tabs>
+
+<Callout type="warn">
+  The current runtime still resolves update queries to the affected row count. `returning()` is compiled into SQL, but the returned Lua/TypeScript value is not yet the returned row set.
+</Callout>
 
 ## Update with raw SQL
 

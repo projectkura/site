@@ -22,7 +22,7 @@ await db.insert(users).values({ username: 'john', email: 'john@example.com' });
 
 ## Returning
 
-Get the inserted row back:
+Get the inserted id, or the first returned column value:
 
 <Tabs items={["Lua", "TypeScript"]}>
 <Tab value="Lua">
@@ -41,6 +41,10 @@ const id = await db.insert(users)
 ```
 </Tab>
 </Tabs>
+
+<Callout type="info">
+  Lua uses tables for array-like values, so `:returning({ 'id' })` is the Lua equivalent of TypeScript's `.returning(['id'])`.
+</Callout>
 
 ## Bulk insert
 

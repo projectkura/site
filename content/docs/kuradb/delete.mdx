@@ -20,14 +20,18 @@ await db.delete(users).where(eq('id', userId));
 
 ## Returning
 
-Get the deleted row back:
+Add a `RETURNING` clause to the generated SQL:
 
 ```lua
-local deleted = kura.db.delete('users')
+kura.db.delete('users')
   :where(op.eq('id', userId))
   :returning({ 'id', 'username' })
   :await()
 ```
+
+<Callout type="warn">
+  The current runtime still resolves delete queries to the affected row count. `returning()` is compiled into SQL, but the returned Lua/TypeScript value is not yet the returned row set.
+</Callout>
 
 ## Soft deletes
 

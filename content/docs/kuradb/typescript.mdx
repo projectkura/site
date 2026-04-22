@@ -27,6 +27,16 @@ await db.update(users).set({ username: 'jane' }).where(eq('id', userId));
 await db.delete(users).where(eq('id', userId));
 ```
 
+You can also use the Lua-shaped alias if you want API parity in shared examples:
+
+```ts
+import { kura } from './queryBuilder';
+
+await kura.db.insert('users').values({ username: 'john' });
+```
+
+`db.insert(users)` is still the preferred TypeScript style when you want typed table definitions.
+
 ## Raw SQL
 
 For complex queries beyond the builder:
