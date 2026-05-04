@@ -5,6 +5,14 @@ description: Define your database tables in TypeScript — the single source of 
 
 Your schema is defined once in `src/schema.ts`. From this single file, KuraDB generates SQL migrations, Lua type annotations, and table metadata for the query builder.
 
+When you only need updated Lua autocomplete, run `kuradb generate --types-only` from the extracted release directory or your local resource root. That regenerates `lib/schema.generated.lua` without creating a migration or starting FiveM.
+
+`schema.generated.lua` is the LuaLS-facing artifact. It contains:
+
+- row types such as `UsersRow`
+- insert/update shapes such as `UsersInsert` and `UsersUpdate`
+- generated table definitions under `kura.db.tables`
+
 ## Columns
 
 Use `defineColumn` to declare a column:
@@ -103,9 +111,34 @@ export const schema = defineSchema('public', {
 
 The schema object is consumed by:
 - `kuradb generate` — creates migration SQL and Lua types
+- `kuradb generate --types-only` — regenerates only Lua types
 - `kuradb migrate` — applies migrations and regenerates types
 - The query builder — resolves table and schema names
 - The type generator — produces EmmyLua annotations
+
+## Lua usage
+
+For the best Lua autocomplete, use generated table definitions instead of plain strings:
+
+```lua
+local users = kura.db.tables.users
+
+local rows = kura.db.select()
+  :from(users)
+  :where(op.isNull('deletedAt'))
+  :await()
+
+kura.db.insert(users)
+  :values({
+    id = 'user-1',
+    username = 'john',
+    email = 'john@example.com',
+    passwordHash = 'hashed',
+    createdAt = os.time(),
+    updatedAt = os.time(),
+  })
+  :await()
+```
 
 ## Full example
 

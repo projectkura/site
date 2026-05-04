@@ -80,37 +80,59 @@ server_scripts {
 
 ---
 
+## Editor setup
+
+For LuaLS, add `kuradb/lib` to your workspace library paths once. Kura source checkouts can use:
+
+```json
+{
+  "Lua.runtime.version": "Lua 5.4",
+  "Lua.diagnostics.globals": ["kura", "op"],
+  "Lua.workspace.checkThirdParty": false,
+  "Lua.workspace.library": [
+    "./kura-core",
+    "./kura-lib",
+    "./kura-ui",
+    "./db/kuradb/lib"
+  ]
+}
+```
+
+---
+
 ## Your first query
 
 Once your resource is set up, you can start querying immediately. `op` is available globally after loading `QueryBuilder.lua`.
 
 ```lua
 kura.db.ready(function()
-  local users = kura.db.select():from('users'):await()
+  local users = kura.db.select():from(kura.db.tables.users):await()
   print(#users .. ' users loaded')
 end)
 ```
 
 ```lua
+local users = kura.db.tables.users
+
 -- Insert
-kura.db.insert('users')
+kura.db.insert(users)
   :values({ username = 'john', email = 'john@example.com' })
   :await()
 
 -- Select with filter
 local cops = kura.db.select({ 'id', 'username' })
-  :from('users')
+  :from(users)
   :where(op.eq('job', 'police'))
   :await()
 
 -- Update
-kura.db.update('users')
+kura.db.update(users)
   :set({ username = 'jane' })
   :where(op.eq('id', userId))
   :await()
 
 -- Delete
-kura.db.delete('users')
+kura.db.delete(users)
   :where(op.eq('id', userId))
   :await()
 ```

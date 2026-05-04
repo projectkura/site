@@ -3,4 +3,31 @@ title: Types
 description: Shared LuaLS type definitions used across the Kura framework, how annotations work, and links to each individual type page.
 ---
 
-Soon
+Kura ships LuaLS-friendly annotations for the `kura` global and for KuraDB's generated schema metadata.
+
+## Workspace setup
+
+For the best autocomplete, add the Kura resources to your LuaLS library once:
+
+```json
+{
+  "Lua.runtime.version": "Lua 5.4",
+  "Lua.diagnostics.globals": ["kura", "op"],
+  "Lua.workspace.checkThirdParty": false,
+  "Lua.workspace.library": [
+    "./kura-core",
+    "./kura-lib",
+    "./kura-ui",
+    "./db/kuradb/lib"
+  ]
+}
+```
+
+If you are using the extracted `kuradb` release instead of the source checkout, point the last path at your shipped `kuradb/lib` directory.
+
+## What you get
+
+- `kura.lib`, `kura.db`, and `kura.ui` resolve without global warnings
+- `kura.db.tables.<tableName>` autocompletes from the generated schema
+- `kura.db.select():from(kura.db.tables.users)` returns typed rows
+- `kura.db.insert(kura.db.tables.users):values(...)` validates the insert shape
