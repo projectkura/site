@@ -243,7 +243,7 @@ function Hero() {
 	}, []);
 
 		return (
-		<section className="relative flex min-h-[84svh] items-center px-4 py-14 sm:py-18 lg:py-22">
+		<section className="relative flex min-h-screen items-center justify-center px-4 pt-24 pb-14 sm:pt-28 sm:pb-18 lg:pt-32 lg:pb-22">
 			{/* Hero-local glow */}
 			<div
 				className="pointer-events-none absolute -top-24 -left-[5%] h-[500px] w-[700px]"
