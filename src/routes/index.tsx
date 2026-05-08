@@ -242,8 +242,8 @@ function Hero() {
 		return () => window.removeEventListener("scroll", onScroll);
 	}, []);
 
-	return (
-		<section className="relative px-4 pt-44 pb-16 sm:pt-52 sm:pb-20 lg:pt-60 lg:pb-24">
+		return (
+		<section className="relative flex min-h-[84svh] items-center px-4 py-14 sm:py-18 lg:py-22">
 			{/* Hero-local glow */}
 			<div
 				className="pointer-events-none absolute -top-24 -left-[5%] h-[500px] w-[700px]"
@@ -255,7 +255,7 @@ function Hero() {
 				}}
 			/>
 
-			<div className="relative mx-auto max-w-[1180px]">
+			<div className="relative mx-auto w-full max-w-[1180px]">
 				{/* Headline — word-by-word blur dissolve */}
 				<h1 className="font-display text-[clamp(3.2rem,10vw,7.5rem)] leading-[0.92] font-medium tracking-[-0.025em] text-white">
 					{words.map((word, i) => (
@@ -306,7 +306,7 @@ function Hero() {
 
 			{/* Scroll indicator — absolute, doesn't affect layout, gone forever once scrolled */}
 			<div
-				className={`pointer-events-none absolute bottom-[-3rem] left-0 right-0 flex justify-center transition-opacity duration-700 ${gone ? "opacity-0" : "opacity-100"}`}
+				className={`pointer-events-none absolute bottom-4 left-0 right-0 flex justify-center transition-opacity duration-700 sm:bottom-6 ${gone ? "opacity-0" : "opacity-100"}`}
 				aria-hidden="true"
 			>
 				<div className="scroll-indicator flex flex-col items-center gap-1.5">
@@ -526,7 +526,7 @@ function Features() {
 	];
 
 	return (
-		<section id="features" className="relative px-4 pt-28 pb-24 sm:pt-36">
+		<section id="features" className="relative px-4 pt-16 pb-24 sm:pt-24">
 			<div className="relative mx-auto max-w-[1180px]">
 				{/* Section header — asymmetric, left-aligned */}
 				<div
