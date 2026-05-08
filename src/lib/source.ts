@@ -1,5 +1,5 @@
-import { loader } from "fumadocs-core/source";
 import { docs } from "collections/server";
+import { loader } from "fumadocs-core/source";
 import { getDocsBaseUrl, getMarkdownHref } from "./docs";
 
 const sourceDefinition = docs.toFumadocsSource();
@@ -33,7 +33,7 @@ export function buildDocsGraph() {
 		title:
 			typeof page.data.title === "string"
 				? page.data.title
-				: page.slugs.at(-1)?.replaceAll("-", " ") ?? "Page",
+				: (page.slugs.at(-1)?.replaceAll("-", " ") ?? "Page"),
 		url: page.url,
 	}));
 

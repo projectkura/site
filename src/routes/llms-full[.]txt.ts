@@ -10,7 +10,7 @@ export const Route = createFileRoute("/llms-full.txt")({
 						const title =
 							typeof page.data.title === "string"
 								? page.data.title
-								: page.slugs.at(-1)?.replaceAll("-", " ") ?? "Page";
+								: (page.slugs.at(-1)?.replaceAll("-", " ") ?? "Page");
 
 						return [
 							`# ${title}`,

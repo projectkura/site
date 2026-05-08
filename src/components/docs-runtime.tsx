@@ -1,8 +1,8 @@
+import { Link } from "@tanstack/react-router";
+import type { TOCItemType } from "fumadocs-core/toc";
+import { InlineTOC } from "fumadocs-ui/components/inline-toc";
 import type { ReactNode } from "react";
 import { createContext, useContext } from "react";
-import { Link } from "@tanstack/react-router";
-import { InlineTOC } from "fumadocs-ui/components/inline-toc";
-import { TOCItemType } from "fumadocs-core/toc";
 
 type GraphNode = {
 	path: string;
@@ -53,11 +53,7 @@ function splitHref(href: string) {
 	const hashIndex = href.indexOf("#");
 	const queryIndex = href.indexOf("?");
 	const boundary =
-		hashIndex === -1
-			? queryIndex
-			: queryIndex === -1
-				? hashIndex
-				: Math.min(hashIndex, queryIndex);
+		hashIndex === -1 ? queryIndex : queryIndex === -1 ? hashIndex : Math.min(hashIndex, queryIndex);
 
 	return boundary === -1
 		? { pathname: href, suffix: "" }
@@ -84,7 +80,11 @@ function normalizePath(path: string) {
 	return normalized.join("/");
 }
 
-function resolveRelativeDocHref(href: string, currentPath: string, pageMap: Record<string, string>) {
+function resolveRelativeDocHref(
+	href: string,
+	currentPath: string,
+	pageMap: Record<string, string>,
+) {
 	if (
 		href.startsWith("/") ||
 		href.startsWith("#") ||

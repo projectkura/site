@@ -1,8 +1,10 @@
 /// <reference types="vite/client" />
-import type { ReactNode } from "react";
-import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+
+import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { RootProvider } from "fumadocs-ui/provider/tanstack";
+import type { ReactNode } from "react";
 import { DocsSearchDialog } from "~/components/docs-search";
+import appCss from "~/styles/app.css?url";
 
 export const Route = createRootRoute({
 	head: () => ({
@@ -18,7 +20,7 @@ export const Route = createRootRoute({
 					"Project Kura by Walteria.net. A high performance, feature-rich server core for FiveM on GTA 5 Enhanced. Built from the ground up with focus on security and stability.",
 			},
 			{ name: "theme-color", content: "#050508" },
-			{ name: "apple-mobile-web-app-title", content: "Project Kura" },
+			{ name: "apple-mobile-web-app-title", content: "Kura" },
 			{ property: "og:type", content: "website" },
 			{
 				property: "og:title",
@@ -33,6 +35,7 @@ export const Route = createRootRoute({
 			{ name: "twitter:card", content: "summary_large_image" },
 		],
 		links: [
+			{ rel: "stylesheet", href: appCss },
 			{ rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
 			{ rel: "icon", type: "image/png", href: "/favicon-96x96.png", sizes: "96x96" },
 			{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
@@ -58,7 +61,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
 			<head>
 				<HeadContent />
 			</head>
-			<body className="min-h-screen bg-void text-silver antialiased">
+			<body className="min-h-screen bg-background text-foreground antialiased">
 				<RootProvider
 					search={{
 						enabled: true,

@@ -1,12 +1,13 @@
 {
-  "title": "Kura Docs",
-  "pages": [
-    "getting-started",
-    "installation",
-    "developer",
-    "---Resources---",
-    "core",
-    "lib",
-    "kuradb"
-  ]
+	"title": "Kura Docs",
+	"pages": [
+		"getting-started",
+		"installation",
+		"developer",
+		"lua-types",
+		"---Resources---",
+		"core",
+		"lib",
+		"kuradb"
+	]
 }

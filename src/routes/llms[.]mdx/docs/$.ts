@@ -15,14 +15,17 @@ export const Route = createFileRoute("/llms.mdx/docs/$")({
 				const title =
 					typeof resolved.page.data.title === "string"
 						? resolved.page.data.title
-						: resolved.page.slugs.at(-1)?.replaceAll("-", " ") ?? "Page";
+						: (resolved.page.slugs.at(-1)?.replaceAll("-", " ") ?? "Page");
 				const content = await resolved.page.data.getText("processed");
 
-				return new Response([`# ${title}`, `Canonical URL: ${resolved.page.url}`, "", content].join("\n"), {
-					headers: {
-						"content-type": "text/plain; charset=utf-8",
+				return new Response(
+					[`# ${title}`, `Canonical URL: ${resolved.page.url}`, "", content].join("\n"),
+					{
+						headers: {
+							"content-type": "text/plain; charset=utf-8",
+						},
 					},
-				});
+				);
 			},
 		},
 	},

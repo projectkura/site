@@ -1,0 +1,176 @@
+---
+title: Lua Types
+description: Fast setup for Lua Language Server across the full Kura workspace.
+---
+
+This guide sets up Lua Language Server for the full Kura workspace, not just `kuradb`.
+
+After completing it, you should get autocomplete and type checking for:
+
+- FiveM globals and natives
+- `kura-lib` shared globals
+- `kuradb` runtime helpers such as `kura.db` and `op`
+- your own generated database schema types from `schema.generated.lua`
+
+## What Kura ships and what you generate
+
+Kura does **not** treat your generated schema types as part of the release contract.
+
+That is intentional:
+
+- `kuradb` is downloaded as a base resource
+- you define your own schema to match your framework or server
+- you generate your own `lib/schema.generated.lua`
+
+So the setup is:
+
+1. Install LuaLS once
+2. Install the FiveM Lua addon once
+3. Point LuaLS at your Kura workspace
+4. Run the KuraDB type generator whenever your schema changes
+
+## 1. Install LuaLS
+
+Install the `Lua` extension by `LuaLS` in VS Code, Cursor, or another editor that supports Lua Language Server.
+
+## 2. Install the FiveM addon
+
+Kura uses the same basic approach that Overextended documents for Lua typing: LuaLS needs a FiveM addon for natives and runtime globals.
+
+Clone `fivem-lls-addon` somewhere on your machine outside the server resources folder:
+
+```bash
+git clone https://github.com/overextended/fivem-lls-addon.git C:/lua-addons/fivem-lls-addon
+```
+
+You only need to do this once.
+
+## 3. Add a workspace LuaLS config
+
+Create a `.luarc.json` in the root of your Kura workspace, for example in `fivem/[core]/`.
+
+Update the `workspace.userThirdParty` path to wherever you cloned `fivem-lls-addon`.
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+  "runtime": {
+    "version": "Lua 5.4"
+  },
+  "workspace": {
+    "checkThirdParty": "Apply",
+    "userThirdParty": [
+      "C:/lua-addons"
+    ],
+    "library": [
+      "./kura-lib/init.lua",
+      "./kuradb/lib/KuraDB.lua",
+      "./kuradb/lib/QueryBuilder.lua",
+      "./kuradb/lib/schema.generated.lua"
+    ]
+  },
+  "diagnostics": {
+    "globals": [
+      "Citizen",
+      "GetCurrentResourceName",
+      "RegisterCommand",
+      "Wait",
+      "exports",
+      "kura",
+      "op",
+      "promise"
+    ]
+  }
+}
+```
+
+This does four important things:
+
+- loads FiveM globals from `fivem-lls-addon`
+- loads `kura-lib` into the workspace type graph
+- loads `kuradb` runtime helpers into the workspace type graph
+- loads your generated schema file so table and row types autocomplete correctly
+
+Open the `fivem/[core]` folder itself in your editor after adding this file.
+
+## 4. Generate your schema types
+
+Run this from the `kuradb` resource directory after editing your schema:
+
+```bash
+bun run generate -- --types-only
+```
+
+This regenerates:
+
+```text
+kuradb/lib/schema.generated.lua
+```
+
+If you also want to create migration SQL at the same time:
+
+```bash
+bun run generate
+```
+
+If you want to apply pending migrations from the command line:
+
+```bash
+set KURADB_CONNECTION_STRING=postgres://user:password@localhost:5432/fivem
+bun run migrate
+```
+
+## Daily workflow
+
+For normal Kura development, the loop is simple:
+
+1. Edit your schema in `kuradb`
+2. Run `bun run generate -- --types-only`
+3. Return to your Lua resource
+4. Let LuaLS pick up the updated `schema.generated.lua`
+
+No FiveM server is required just to refresh types.
+
+## What should autocomplete
+
+Once configured, these should resolve in your Lua resources:
+
+```lua
+local tables = kura.db.tables
+
+local usersTable = tables.users
+print(usersTable.columns.username)
+
+---@type UsersInsert
+local payload = {
+  id = '...',
+  username = 'demo',
+  email = 'demo@example.com',
+  passwordHash = 'hash',
+  createdAt = os.time(),
+  updatedAt = os.time(),
+}
+
+---@type UsersRow[]
+local users = kura.db.raw.query.await('SELECT * FROM "public"."users"')
+
+print(users[1].username)
+```
+
+You should also get autocomplete for `kura.db`, query builder chains, and `op.eq`, `op.and_`, and the other query operators.
+
+## Troubleshooting
+
+If autocomplete does not appear:
+
+1. Make sure you opened `fivem/[core]` as the workspace root
+2. Make sure `.luarc.json` is in that workspace root
+3. Make sure `workspace.userThirdParty` points to the parent folder containing `fivem-lls-addon`
+4. Make sure `kuradb/lib/schema.generated.lua` actually exists
+5. Reload the editor window after generating types
+
+If `schema.generated.lua` is missing, generate it again:
+
+```bash
+bun run generate -- --types-only
+```

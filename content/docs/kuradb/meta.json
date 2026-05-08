@@ -1,18 +1,18 @@
 {
-  "title": "KuraDB",
-  "pages": [
-    "configuration",
-    "schema",
-    "migrations",
-    "---Query Builder---",
-    "select",
-    "insert",
-    "update",
-    "delete",
-    "operators",
-    "---Advanced---",
-    "raw-sql",
-    "transactions",
-    "typescript"
-  ]
+	"title": "KuraDB",
+	"pages": [
+		"configuration",
+		"schema",
+		"migrations",
+		"---Query Builder---",
+		"select",
+		"insert",
+		"update",
+		"delete",
+		"operators",
+		"---Advanced---",
+		"raw-sql",
+		"transactions",
+		"typescript"
+	]
 }

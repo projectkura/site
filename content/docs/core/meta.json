@@ -1,13 +1,13 @@
 {
-  "title": "Core",
-  "pages": [
-    "player",
-    "reactive-state",
-    "rpc",
-    "events",
-    "hooks",
-    "commands",
-    "configuration",
-    "types"
-  ]
+	"title": "Core",
+	"pages": [
+		"player",
+		"reactive-state",
+		"rpc",
+		"events",
+		"hooks",
+		"commands",
+		"configuration",
+		"types"
+	]
 }

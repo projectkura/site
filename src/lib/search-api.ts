@@ -7,7 +7,7 @@ export const docsSearchApi = createFromSource(docsSource, {
 		title:
 			typeof page.data.title === "string"
 				? page.data.title
-				: page.slugs.at(-1)?.replaceAll("-", " ") ?? "Page",
+				: (page.slugs.at(-1)?.replaceAll("-", " ") ?? "Page"),
 		description: page.data.description,
 		structuredData: page.data.structuredData,
 		url: page.url,

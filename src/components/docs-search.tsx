@@ -41,9 +41,7 @@ export function DocsSearchDialog(props: SharedProps) {
 							No results found.
 						</div>
 					)}
-					Item={({ item, onClick }) => (
-						<SearchDialogListItem item={item} onClick={onClick} />
-					)}
+					Item={({ item, onClick }) => <SearchDialogListItem item={item} onClick={onClick} />}
 				/>
 				<SearchDialogFooter />
 			</SearchDialogContent>

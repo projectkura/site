@@ -8,7 +8,10 @@ const scanned = await scanURLs({
 	cwd: process.cwd(),
 	populate: {
 		"/docs/$": pages.map((page) => ({
-			value: page.url.replace(/^\/docs\/?/, "").split("/").filter(Boolean),
+			value: page.url
+				.replace(/^\/docs\/?/, "")
+				.split("/")
+				.filter(Boolean),
 		})),
 	},
 });
