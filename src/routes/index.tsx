@@ -9,9 +9,11 @@ import {
 	GitBranch,
 	Layers,
 	LayoutDashboard,
+	Menu,
 	Plug,
 	Server,
 	ShieldCheck,
+	X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DiscordIcon, GithubIcon } from "~/components/icons";
@@ -117,6 +119,7 @@ function AtmosBackdrop() {
 
 function Navbar() {
 	const [scrolled, setScrolled] = useState(false);
+	const [open, setOpen] = useState(false);
 	useEffect(() => {
 		const onScroll = () => setScrolled(window.scrollY > 12);
 		onScroll();
@@ -124,11 +127,23 @@ function Navbar() {
 		return () => window.removeEventListener("scroll", onScroll);
 	}, []);
 
+	// Lock body scroll while the mobile menu is open
+	useEffect(() => {
+		if (typeof document === "undefined") return;
+		const prev = document.body.style.overflow;
+		document.body.style.overflow = open ? "hidden" : prev || "";
+		return () => {
+			document.body.style.overflow = prev;
+		};
+	}, [open]);
+
+	const closeMenu = () => setOpen(false);
+
 	return (
 		<header className="fixed top-0 right-0 left-0 z-50 flex justify-center px-4 pt-4 sm:pt-5">
 			<nav
-				className={`flex h-14 w-full max-w-[1180px] items-center gap-2 rounded-full border px-2.5 pl-5 transition-all duration-700 ${
-					scrolled
+				className={`relative flex h-14 w-full max-w-[1180px] items-center gap-2 rounded-full border pr-2 pl-4 transition-all duration-700 sm:px-2.5 sm:pl-5 ${
+					scrolled || open
 						? "border-white/[0.08] bg-[oklch(0.07_0.01_260/0.78)] shadow-[0_24px_60px_-26px_rgba(0,0,0,0.7)] backdrop-blur-2xl"
 						: "border-white/[0.06] bg-[oklch(0.07_0.01_260/0.45)] backdrop-blur-xl"
 				}`}
@@ -136,6 +151,7 @@ function Navbar() {
 				<button
 					type="button"
 					onClick={() => {
+						closeMenu();
 						window.scrollTo({ top: 0, behavior: "smooth" });
 					}}
 					className="flex items-center gap-2 select-none"
@@ -152,13 +168,14 @@ function Navbar() {
 					<NavLink href="#install">Install</NavLink>
 				</div>
 
-				<div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+				{/* Desktop right cluster — hidden on mobile via wrapper */}
+				<div className="ml-auto hidden items-center gap-1.5 md:flex md:gap-2">
 					<a
 						href="https://github.com/projectkura"
 						target="_blank"
 						rel="noopener noreferrer"
 						aria-label="GitHub"
-						className="pill pill-ghost-dark hidden h-9 w-9 sm:inline-flex"
+						className="pill pill-ghost-dark h-9 w-9"
 					>
 						<GithubIcon className="h-4 w-4" />
 					</a>
@@ -167,35 +184,140 @@ function Navbar() {
 						target="_blank"
 						rel="noopener noreferrer"
 						aria-label="Discord"
-						className="pill pill-ghost-dark hidden h-9 w-9 sm:inline-flex"
+						className="pill pill-ghost-dark h-9 w-9"
 					>
 						<DiscordIcon className="h-4 w-4" />
 					</a>
-					<a
-						href="https://billing.1of1servers.com/aff.php?aff=264"
-						target="_blank"
-						rel="noopener noreferrer"
-						className="pill pill-ghost-dark hidden h-9 gap-1.5 px-3.5 text-[12.5px] sm:inline-flex"
-					>
-						<Server className="h-3.5 w-3.5" strokeWidth={1.75} />
-						Hosting
-					</a>
-					<a
-						href="https://orbit.walteria.net"
-						target="_blank"
-						rel="noopener noreferrer"
-						className="pill pill-ghost-dark hidden h-9 gap-1.5 px-3.5 text-[12.5px] sm:inline-flex"
-					>
-						Orbit
-						<ArrowUpRight className="h-3 w-3" strokeWidth={2} />
-					</a>
+					<div className="hidden items-center gap-1.5 lg:flex lg:gap-2">
+						<a
+							href="https://billing.1of1servers.com/aff.php?aff=264"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="pill pill-ghost-dark h-9 gap-1.5 px-3.5 text-[12.5px]"
+						>
+							<Server className="h-3.5 w-3.5" strokeWidth={1.75} />
+							Hosting
+						</a>
+						<a
+							href="https://orbit.walteria.net"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="pill pill-ghost-dark h-9 gap-1.5 px-3.5 text-[12.5px]"
+						>
+							Orbit
+							<ArrowUpRight className="h-3 w-3" strokeWidth={2} />
+						</a>
+					</div>
 					<a href="/docs" className="pill pill-paper h-9 gap-1.5 px-5 text-[13px] font-semibold">
 						Read Docs
 						<ArrowRight className="h-3.5 w-3.5" strokeWidth={2.25} />
 					</a>
 				</div>
+
+				{/* Mobile hamburger — only visible below md, wrapper controls visibility */}
+				<div className="ml-auto md:hidden">
+					<button
+						type="button"
+						onClick={() => setOpen((v) => !v)}
+						aria-label={open ? "Close menu" : "Open menu"}
+						aria-expanded={open}
+						className="pill pill-ghost-dark h-9 w-9"
+					>
+						{open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+					</button>
+				</div>
+
+				{/* Mobile menu — anchored under the pill, dark glass panel */}
+				{open && (
+					<div className="absolute top-[calc(100%+0.5rem)] right-0 left-0 origin-top md:hidden">
+						<div className="rounded-3xl border border-white/[0.08] bg-[oklch(0.07_0.01_260/0.92)] p-3 shadow-[0_24px_60px_-26px_rgba(0,0,0,0.7)] backdrop-blur-2xl">
+							<div className="flex flex-col">
+								<MobileNavLink href="#features" onClick={closeMenu}>
+									Features
+								</MobileNavLink>
+								<MobileNavLink href="#legacy-vs-kura" onClick={closeMenu}>
+									Why Kura
+								</MobileNavLink>
+								<MobileNavLink href="#install" onClick={closeMenu}>
+									Install
+								</MobileNavLink>
+							</div>
+							<div className="my-2 h-px bg-white/[0.06]" />
+							<a
+								href="/docs"
+								onClick={closeMenu}
+								className="pill pill-paper h-11 w-full gap-2 px-5 text-[14px] font-semibold"
+							>
+								Read Docs
+								<ArrowRight className="h-4 w-4" strokeWidth={2.25} />
+							</a>
+							<div className="mt-2 grid grid-cols-2 gap-2">
+								<a
+									href="https://github.com/projectkura"
+									target="_blank"
+									rel="noopener noreferrer"
+									onClick={closeMenu}
+									className="pill pill-ghost-dark h-10 gap-2 px-3 text-[13px]"
+								>
+									<GithubIcon className="h-4 w-4" />
+									GitHub
+								</a>
+								<a
+									href="https://discord.gg/jtctcY2pvs"
+									target="_blank"
+									rel="noopener noreferrer"
+									onClick={closeMenu}
+									className="pill pill-ghost-dark h-10 gap-2 px-3 text-[13px]"
+								>
+									<DiscordIcon className="h-4 w-4" />
+									Discord
+								</a>
+								<a
+									href="https://billing.1of1servers.com/aff.php?aff=264"
+									target="_blank"
+									rel="noopener noreferrer"
+									onClick={closeMenu}
+									className="pill pill-ghost-dark h-10 gap-2 px-3 text-[13px]"
+								>
+									<Server className="h-3.5 w-3.5" strokeWidth={1.75} />
+									Hosting
+								</a>
+								<a
+									href="https://orbit.walteria.net"
+									target="_blank"
+									rel="noopener noreferrer"
+									onClick={closeMenu}
+									className="pill pill-ghost-dark h-10 gap-2 px-3 text-[13px]"
+								>
+									Orbit
+									<ArrowUpRight className="h-3 w-3" strokeWidth={2} />
+								</a>
+							</div>
+						</div>
+					</div>
+				)}
 			</nav>
 		</header>
+	);
+}
+
+function MobileNavLink({
+	href,
+	onClick,
+	children,
+}: {
+	href: string;
+	onClick: () => void;
+	children: React.ReactNode;
+}) {
+	return (
+		<a
+			href={href}
+			onClick={onClick}
+			className="rounded-2xl px-4 py-3 text-[15px] font-medium text-white/80 transition-colors hover:bg-white/[0.05] hover:text-white"
+		>
+			{children}
+		</a>
 	);
 }
 
@@ -257,7 +379,7 @@ function Hero() {
 
 			<div className="relative mx-auto w-full max-w-[1180px]">
 				{/* Headline — word-by-word blur dissolve */}
-				<h1 className="font-display text-[clamp(3.2rem,10vw,7.5rem)] leading-[0.92] font-medium tracking-[-0.025em] text-white">
+				<h1 className="font-display text-[clamp(2.6rem,9vw,7.5rem)] leading-[0.95] font-medium tracking-[-0.025em] text-white sm:leading-[0.92]">
 					{words.map((word, i) => (
 						<span key={word} className="hero-word" style={{ "--i": i } as React.CSSProperties}>
 							{word}{" "}
@@ -306,7 +428,7 @@ function Hero() {
 
 			{/* Scroll indicator — absolute, doesn't affect layout, gone forever once scrolled */}
 			<div
-				className={`pointer-events-none absolute bottom-4 left-0 right-0 flex justify-center transition-opacity duration-700 sm:bottom-6 ${gone ? "opacity-0" : "opacity-100"}`}
+				className={`pointer-events-none absolute right-0 bottom-4 left-0 hidden justify-center transition-opacity duration-700 sm:bottom-6 sm:flex ${gone ? "opacity-0" : "opacity-100"}`}
 				aria-hidden="true"
 			>
 				<div className="scroll-indicator flex flex-col items-center gap-1.5">
@@ -430,7 +552,7 @@ function Philosophy() {
 										key={item}
 										className="grid gap-4 border-b border-white/[0.06] py-5 last:border-b-0"
 									>
-										<div className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
+										<div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4">
 											<span className="font-mono text-[10.5px] tracking-[0.12em] text-white/28">
 												0{index + 1}
 											</span>
@@ -469,7 +591,7 @@ function Philosophy() {
 										key={row.t}
 										className="grid gap-4 border-b border-white/[0.07] py-5 last:border-b-0"
 									>
-										<div className="grid gap-4 sm:grid-cols-[auto_auto_minmax(0,1fr)] sm:items-center">
+										<div className="grid grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-4">
 											<span className="font-mono text-[10.5px] tracking-[0.12em] text-white/34">
 												0{index + 1}
 											</span>
@@ -638,7 +760,7 @@ function Performance() {
 						{stats.map((s, i) => (
 							<div
 								key={s.label}
-								className={`group relative grid gap-4 px-6 py-6 transition-colors duration-500 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-10 sm:px-8 lg:grid-cols-[minmax(0,2fr)_auto_minmax(0,2fr)] lg:items-center ${
+								className={`group relative grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 px-5 py-6 transition-colors duration-500 sm:gap-10 sm:px-8 lg:grid-cols-[minmax(0,2fr)_auto_minmax(0,2fr)] lg:items-center ${
 									i !== stats.length - 1 ? "border-b border-white/[0.06]" : ""
 								}`}
 							>
@@ -727,16 +849,18 @@ function Install() {
 					className="mt-14 overflow-hidden rounded-[2rem] border border-white/[0.07] bg-white/[0.015]"
 					data-reveal
 				>
-					<div className="grid gap-4 px-5 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-5 sm:px-6">
+					<div className="grid gap-3 px-5 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-5 sm:px-6">
 						<span className="font-mono text-[10.5px] tracking-[0.18em] text-white/40 uppercase">
 							recipe.yaml
 						</span>
-						<code className="min-w-0 truncate font-mono text-[12.5px] text-white/75">{url}</code>
+						<code className="min-w-0 break-all font-mono text-[12.5px] text-white/75 sm:truncate sm:break-normal">
+							{url}
+						</code>
 						<button
 							type="button"
 							onClick={doCopy}
 							aria-live="polite"
-							className="pill pill-paper h-10 gap-1.5 px-4 text-[12px] font-semibold"
+							className="pill pill-paper h-10 w-full gap-1.5 px-4 text-[12px] font-semibold sm:w-auto"
 						>
 							{copied ? (
 								<>
@@ -757,7 +881,7 @@ function Install() {
 						{steps.map((s, i) => (
 							<li
 								key={s.n}
-								className={`group relative grid gap-5 px-5 py-6 transition-colors duration-500 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-8 sm:px-6 ${
+								className={`group relative grid grid-cols-[auto_minmax(0,1fr)] items-start gap-4 px-5 py-6 transition-colors duration-500 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-8 sm:px-6 ${
 									i !== steps.length - 1 ? "border-b border-white/[0.06]" : ""
 								}`}
 							>
@@ -767,7 +891,7 @@ function Install() {
 										background: "linear-gradient(90deg, oklch(0.62 0.22 295 / 0.14), transparent)",
 									}}
 								/>
-								<span className="font-display relative inline-flex h-11 items-center text-[clamp(1.6rem,2.4vw,2rem)] font-medium tracking-[-0.035em] text-white/80">
+								<span className="font-display relative inline-flex h-11 items-center text-[clamp(1.4rem,2.4vw,2rem)] font-medium tracking-[-0.035em] text-white/80">
 									{s.n}
 								</span>
 								<div className="relative">
