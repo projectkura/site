@@ -1,16 +1,48 @@
 ---
 title: Select
-description: Query rows from your database using the chainable select builder.
+description: Query rows with the chainable Lua builder.
 ---
+
+## Recommended style
+
+For Lua resources that own their schema, prefer generated table and column references from `kura.db.tables`.
+
+The examples below use `users` as an illustration. In a real server, use whatever table names and field names your `schema.ts` generates.
+
+```lua
+local users = kura.db.tables.users
+
+local rows = kura.db.select({ users.id, users.username, users.createdAt })
+  :from(users)
+  :where(op.eq(users.id, 42))
+  :await()
+```
+
+String-based calls are still supported:
+
+```lua
+local rows = kura.db.select({ 'id', 'username' })
+  :from('users')
+  :where(op.eq('id', 42))
+  :await()
+```
+
+<Callout type="info" title="String inputs are identifiers">
+  Plain string table and column inputs in the builder are quoted as SQL identifiers for compatibility and convenience. They are not raw SQL fragments or expression slots. For custom SQL expressions or aliases, use the explicit raw SQL APIs.
+</Callout>
 
 ## Basic select
 
-Select all rows and all columns from a table:
+Select all rows and all schema-known columns:
 
 <Tabs items={["Lua", "TypeScript"]}>
 <Tab value="Lua">
 ```lua
-local rows = kura.db.select():from('users'):await()
+local users = kura.db.tables.users
+
+local rows = kura.db.select()
+  :from(users)
+  :await()
 ```
 </Tab>
 <Tab value="TypeScript">
@@ -20,6 +52,8 @@ const rows = await db.select().from(users);
 </Tab>
 </Tabs>
 
+When you select from a generated table, KuraDB aliases SQL column names back to your Lua field names. If your schema defines `createdAt = defineColumn('created_at', 'date')`, builder results come back as `row.createdAt`.
+
 ## Partial select
 
 Pick specific columns:
@@ -27,7 +61,11 @@ Pick specific columns:
 <Tabs items={["Lua", "TypeScript"]}>
 <Tab value="Lua">
 ```lua
-local rows = kura.db.select({ 'id', 'username' }):from('users'):await()
+local users = kura.db.tables.users
+
+local rows = kura.db.select({ users.id, users.username })
+  :from(users)
+  :await()
 ```
 </Tab>
 <Tab value="TypeScript">
@@ -44,9 +82,11 @@ Use operators to filter results. `op` is available globally.
 <Tabs items={["Lua", "TypeScript"]}>
 <Tab value="Lua">
 ```lua
-local rows = kura.db.select()
-  :from('users')
-  :where(op.eq('id', 42))
+local users = kura.db.tables.users
+
+local rows = kura.db.select({ users.id, users.username })
+  :from(users)
+  :where(op.eq(users.id, 42))
   :await()
 ```
 </Tab>
@@ -64,12 +104,14 @@ const rows = await db.select().from(users).where(eq('id', 42));
 <Tabs items={["Lua", "TypeScript"]}>
 <Tab value="Lua">
 ```lua
+local users = kura.db.tables.users
+
 local rows = kura.db.select()
-  :from('users')
+  :from(users)
   :where(op.and_(
-    op.eq('job', 'police'),
-    op.gt('level', 3),
-    op.isNull('deleted_at')
+    op.eq(users.username, 'john'),
+    op.gt(users.id, 3),
+    op.isNull(users.deletedAt)
   ))
   :await()
 ```
@@ -80,7 +122,7 @@ import { and, eq, gt, isNull } from './queryBuilder/operators';
 
 const rows = await db.select()
   .from(users)
-  .where(and(eq('job', 'police'), gt('level', 3), isNull('deleted_at')));
+  .where(and(eq('username', 'john'), gt('id', 3), isNull('deleted_at')));
 ```
 </Tab>
 </Tabs>
@@ -88,26 +130,85 @@ const rows = await db.select()
 ## Order, limit, offset
 
 ```lua
-local rows = kura.db.select()
-  :from('users')
-  :where(op.lt('id', 100))
-  :orderBy({ created_at = 'desc' })
+local users = kura.db.tables.users
+
+local rows = kura.db.select({ users.id, users.createdAt })
+  :from(users)
+  :where(op.lt(users.id, 100))
+  :orderBy({ [users.createdAt] = 'desc' })
   :limit(10)
   :offset(20)
   :await()
 ```
+
+String order keys still work:
+
+```lua
+local rows = kura.db.select()
+  :from('users')
+  :orderBy({ created_at = 'desc' })
+  :await()
+```
+
+## Result helpers
+
+Use helpers to avoid manual `rows[1]` boilerplate:
+
+```lua
+local users = kura.db.tables.users
+
+local firstUser = kura.db.select():from(users):first():await()
+local maybeUser = kura.db.select():from(users):where(op.eq(users.id, 42)):maybeSingle():await()
+local exactUser = kura.db.select():from(users):where(op.eq(users.id, 42)):single():await()
+local hasUsers = kura.db.select():from(users):exists():await()
+```
+
+Helper behavior:
+
+- `:first()` returns the first row or `nil`
+- `:maybeSingle()` returns one row or `nil`, and errors if more than one row matches
+- `:single()` returns exactly one row, and errors if zero or more than one row matches
+- `:exists()` returns `true` or `false`
+- `:exists()` compiles an efficient `SELECT EXISTS(SELECT 1 ...) AS "exists"` query and ignores the selected column list
+
+## Row locking
+
+Use `:forUpdate()` inside a transaction-bound builder when you need row-level locks:
+
+```lua
+local users = kura.db.tables.users
+
+kura.db.transaction.await(function(query, tx)
+  local user = tx.select()
+    :from(users)
+    :where(op.eq(users.id, 42))
+    :forUpdate()
+    :single()
+    :await()
+
+  return user
+end)
+```
+
+Outside a transaction context, `:forUpdate()` raises an error. Use it through `kura.db.transaction(function(query, tx) ... end)` or `kura.db.transaction.await(...)`, and call `tx.select():forUpdate()`.
 
 ## Inspect the generated SQL
 
 <Tabs items={["Lua", "TypeScript"]}>
 <Tab value="Lua">
 ```lua
-local sql, params = kura.db.select()
-  :from('users')
-  :where(op.eq('username', 'john'))
+local users = kura.db.tables.users
+
+local sql, params = kura.db.select({ users.username, users.createdAt })
+  :from(users)
+  :where(op.eq(users.username, 'john'))
   :toSQL()
 
--- sql:    SELECT * FROM "public"."users" WHERE "username" = $1
+-- sql:
+-- SELECT "username" AS "username", "created_at" AS "createdAt"
+-- FROM "public"."users"
+-- WHERE "username" = $1
+--
 -- params: { 'john' }
 ```
 </Tab>

@@ -1,54 +1,121 @@
 ---
 title: Insert
-description: Insert rows into your database using the query builder.
+description: Insert rows with the Lua builder.
 ---
 
-## Basic insert
+## Recommended style
 
-<Tabs items={["Lua", "TypeScript"]}>
-<Tab value="Lua">
+Use a generated table reference when your resource owns a schema:
+
+```lua
+local users = kura.db.tables.users
+
+kura.db.insert(users)
+  :values({
+    username = 'john',
+    email = 'john@example.com',
+  })
+  :await()
+```
+
+The `users` name above is only an example. Generated refs always come from your own `schema.ts`.
+
+String table names still work:
+
 ```lua
 kura.db.insert('users')
   :values({ username = 'john', email = 'john@example.com' })
   :await()
 ```
-</Tab>
-<Tab value="TypeScript">
+
+String table and column inputs in the builder are compatibility identifiers. They are quoted as identifiers and are not treated as raw SQL fragments.
+
+## Payload keys
+
+When you insert through a generated table, use the Lua field names from your schema object:
+
 ```ts
-await db.insert(users).values({ username: 'john', email: 'john@example.com' });
+createdAt: defineColumn('created_at', 'date')
+passwordHash: defineColumn('password_hash', 'string')
 ```
-</Tab>
-</Tabs>
+
+That becomes:
+
+```lua
+local users = kura.db.tables.users
+
+kura.db.insert(users)
+  :values({
+    createdAt = os.time(),
+    passwordHash = 'hashed',
+  })
+  :await()
+```
+
+KuraDB resolves those Lua field names to their SQL column names automatically.
 
 ## Returning
 
-Get the inserted id, or the first returned column value:
+For explicit result shapes, prefer the new helper methods:
 
-<Tabs items={["Lua", "TypeScript"]}>
-<Tab value="Lua">
 ```lua
-local id = kura.db.insert('users')
-  :values({ username = 'john', email = 'john@example.com' })
+local users = kura.db.tables.users
+
+local insertedId = kura.db.insert(users)
+  :values({
+    username = 'john',
+    email = 'john@example.com',
+  })
+  :returningValue(users.id)
+  :await()
+
+local insertedRow = kura.db.insert(users)
+  :values({
+    username = 'jane',
+    email = 'jane@example.com',
+  })
+  :returningOne({ users.id, users.username, users.createdAt })
+  :await()
+```
+
+Available helpers:
+
+- `:returningRows({ ... })` returns all returned rows
+- `:returningOne({ ... })` returns the first returned row or `nil`
+- `:returningValue(column)` returns the first returned scalar or `nil`
+
+## Compatibility behavior
+
+`returning()` is still supported and keeps the older behavior:
+
+```lua
+local users = kura.db.tables.users
+
+local insertedId = kura.db.insert(users)
+  :values({
+    username = 'john',
+    email = 'john@example.com',
+  })
+  :returning({ users.id })
+  :await()
+```
+
+<Callout type="info">
+  Plain `:returning(...):await()` on `insert()` remains compatibility-oriented and returns the first returned scalar, usually the inserted `id`. Use `returningRows`, `returningOne`, or `returningValue` when you want an explicit result shape.
+</Callout>
+
+String column names are still valid here too:
+
+```lua
+local insertedId = kura.db.insert('users')
+  :values({ username = 'john' })
   :returning({ 'id' })
   :await()
 ```
-</Tab>
-<Tab value="TypeScript">
-```ts
-const id = await db.insert(users)
-  .values({ username: 'john', email: 'john@example.com' })
-  .returning(['id']);
-```
-</Tab>
-</Tabs>
-
-<Callout type="info">
-  Lua uses tables for array-like values, so `:returning({ 'id' })` is the Lua equivalent of TypeScript's `.returning(['id'])`.
-</Callout>
 
 ## Bulk insert
 
-For inserting many rows at once, use `raw.insertMany`:
+For inserting many rows at once, use `kura.db.raw.insertMany.await(...)`:
 
 ```lua
 local ids = kura.db.raw.insertMany.await('users', {
@@ -60,5 +127,9 @@ local ids = kura.db.raw.insertMany.await('users', {
 ```
 
 <Callout type="info">
-  `insertMany` uses a multi-row insert strategy and should always be preferred over looping `insert()`.
+  `insertMany` is the preferred bulk-insert path today. It generates a multi-row PostgreSQL insert and avoids looping `insert()` calls one at a time.
+</Callout>
+
+<Callout type="warn" title="Builder bulk insert">
+  The chainable builder does not have a `valuesMany()` helper yet. If you need bulk inserts today, use `raw.insertMany`. A builder-native bulk insert helper is still TODO.
 </Callout>

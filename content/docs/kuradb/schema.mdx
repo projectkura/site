@@ -1,9 +1,16 @@
 ---
 title: Schema
-description: Define your database tables in TypeScript — the single source of truth for migrations, queries, and Lua types.
+description: Define your database tables in TypeScript as the source of truth for migrations, Lua refs, and ORM metadata.
 ---
 
-Your schema is defined once in `src/schema.ts`. From this single file, KuraDB generates SQL migrations, Lua type annotations, and table metadata for the query builder.
+Your schema is defined once in `src/schema.ts`. From that file, KuraDB generates:
+
+- SQL migrations
+- Lua row and insert/update types
+- `kura.db.tables.<tableName>` metadata
+- generated column refs such as `kura.db.tables.users.id`
+
+Examples in this page use a `users` table only as an illustration. The actual generated names always come from your own `schema.ts`.
 
 When you only need updated Lua autocomplete, run `kuradb generate --types-only` from the extracted release directory or your local resource root. That regenerates `lib/schema.generated.lua` without creating a migration or starting FiveM.
 
@@ -12,6 +19,7 @@ When you only need updated Lua autocomplete, run `kuradb generate --types-only` 
 - row types such as `UsersRow`
 - insert/update shapes such as `UsersInsert` and `UsersUpdate`
 - generated table definitions under `kura.db.tables`
+- generated column refs under `table.columnRefs` and direct fields such as `users.id`
 
 ## Columns
 
@@ -26,34 +34,48 @@ const deletedAt = defineColumn('deleted_at', 'date', { nullable: true });
 const createdAt = defineColumn('created_at', 'date', { defaultExpression: 'NOW()' });
 ```
 
-The first argument is the **SQL column name** (snake_case). The key you assign it to in the table object becomes the **TypeScript/Lua property name** (camelCase).
+The first argument is the **SQL column name**. The key you assign it to in the table object becomes the **TypeScript/Lua field name**.
 
-### Column types
+Example:
 
-| Kind | PostgreSQL | TypeScript | Notes |
+```ts
+createdAt: defineColumn('created_at', 'date')
+passwordHash: defineColumn('password_hash', 'string')
+```
+
+That generates Lua-facing fields:
+
+```lua
+users.createdAt
+users.passwordHash
+```
+
+## Column types
+
+| Kind | PostgreSQL | TypeScript | Lua |
 |---|---|---|---|
-| `'uuid'` | `UUID` | `string` | Best for primary keys |
-| `'string'` | `VARCHAR(255)` | `string` | Default string type |
-| `'number'` | `INTEGER` | `number` | 32-bit integer |
-| `'bigint'` | `BIGINT` | `bigint` | 64-bit integer |
-| `'boolean'` | `BOOLEAN` | `boolean` | |
-| `'date'` | `TIMESTAMP` | `Date` | |
-| `'json'` | `JSONB` | `object` | Binary JSON, queryable |
-| `'custom'` | `TEXT` | `unknown` | Fallback |
+| `'uuid'` | `UUID` | `string` | `string` |
+| `'string'` | `VARCHAR(255)` | `string` | `string` |
+| `'number'` | `INTEGER` | `number` | `number` |
+| `'bigint'` | `BIGINT` | `bigint` | `number` |
+| `'boolean'` | `BOOLEAN` | `boolean` | `boolean` |
+| `'date'` | `TIMESTAMP` | `Date` | `number` |
+| `'json'` | `JSONB` | `object` | `table` |
+| `'custom'` | `TEXT` | `unknown` | `any` |
 
-### Column options
+## Column options
 
 | Option | Type | Description |
 |---|---|---|
 | `primaryKey` | `boolean` | Marks the column as `PRIMARY KEY` |
-| `nullable` | `boolean` | Allows `NULL` (default is `NOT NULL`) |
-| `defaultExpression` | `string` | Raw SQL default (e.g. `'NOW()'`, `'gen_random_uuid()'`) |
-| `encode` | `function` | Transform a value before writing to the database |
-| `decode` | `function` | Transform a value after reading from the database |
+| `nullable` | `boolean` | Allows `NULL` |
+| `defaultExpression` | `string` | Raw SQL default such as `'NOW()'` |
+| `encode` | `function` | Transform a value before writing |
+| `decode` | `function` | Transform a value after reading |
 
-### Custom encode / decode
+## Custom encode / decode
 
-Use hooks for types that need transformation between TypeScript and SQL:
+Use hooks for values that need transformation between TypeScript and SQL:
 
 ```ts
 const metadata = defineColumn<Record<string, unknown>>('metadata', 'json', {
@@ -87,11 +109,12 @@ export const users = defineTable('public', 'users', {
 ```
 
 Arguments:
-1. **Schema name** — PostgreSQL schema, usually `'public'`
-2. **Table name** — The SQL table name
-3. **Columns** — Object mapping property names → column definitions
 
-The `primaryKey` is derived automatically from columns with `primaryKey: true`.
+1. Schema name, usually `'public'`
+2. SQL table name
+3. Object mapping Lua/TypeScript field names to column definitions
+
+The `primaryKey` list is derived automatically from columns with `primaryKey: true`.
 
 ## Schema
 
@@ -110,35 +133,78 @@ export const schema = defineSchema('public', {
 ```
 
 The schema object is consumed by:
-- `kuradb generate` — creates migration SQL and Lua types
-- `kuradb generate --types-only` — regenerates only Lua types
-- `kuradb migrate` — applies migrations and regenerates types
-- The query builder — resolves table and schema names
-- The type generator — produces EmmyLua annotations
 
-## Lua usage
+- `kuradb generate`
+- `kuradb generate --types-only`
+- `kuradb migrate`
+- the Lua type generator
+- the Lua query builder metadata under `kura.db.tables`
 
-For the best Lua autocomplete, use generated table definitions instead of plain strings:
+## Generated Lua usage
+
+For the best Lua autocomplete and refactor safety, use the generated table definitions and column refs:
 
 ```lua
 local users = kura.db.tables.users
 
-local rows = kura.db.select()
+local rows = kura.db.select({ users.id, users.createdAt, users.passwordHash })
   :from(users)
-  :where(op.isNull('deletedAt'))
+  :where(op.isNull(users.deletedAt))
   :await()
 
-kura.db.insert(users)
-  :values({
-    id = 'user-1',
-    username = 'john',
-    email = 'john@example.com',
-    passwordHash = 'hashed',
-    createdAt = os.time(),
-    updatedAt = os.time(),
-  })
+print(rows[1].createdAt)
+print(rows[1].passwordHash)
+```
+
+Builder results use your Lua field names when schema metadata is available. If your SQL column is `created_at`, the builder exposes it as `createdAt` in returned rows.
+
+String-based usage still works:
+
+```lua
+local rows = kura.db.select()
+  :from('users')
+  :where(op.isNull('deleted_at'))
   :await()
 ```
+
+## Generated metadata shape
+
+The generated Lua artifact includes both string maps and richer column refs:
+
+```lua
+local users = kura.db.tables.users
+
+users.columns.createdAt   -- "created_at"
+users.columnRefs.createdAt.sqlName -- "created_at"
+users.columnRefs.createdAt.luaName -- "createdAt"
+users.createdAt           -- same generated column ref object
+```
+
+This is why both of these work:
+
+```lua
+op.eq(users.createdAt, os.time())
+op.eq('created_at', os.time())
+```
+
+Generated refs also carry the Lua alias that the builder returns in result rows. If your schema defines `createdAt = defineColumn('created_at', 'date')`, then:
+
+```lua
+local users = kura.db.tables.users
+
+local row = kura.db.select({ users.createdAt })
+  :from(users)
+  :single()
+  :await()
+
+print(row.createdAt)
+```
+
+The builder compiles the SQL column name `created_at`, then aliases it back to the Lua field name `createdAt` in the returned row.
+
+<Callout type="info" title="Aliases vs raw SQL">
+  Generated schema aliases such as `users.createdAt` are supported directly. Arbitrary SQL expressions or custom aliases are not supported through plain string column names. Use explicit raw SQL when you need expression-level control.
+</Callout>
 
 ## Full example
 
@@ -153,7 +219,6 @@ export const characters = defineTable('public', 'characters', {
   firstName: defineColumn('first_name', 'string'),
   lastName: defineColumn('last_name', 'string'),
   dateOfBirth: defineColumn('date_of_birth', 'date'),
-  job: defineColumn('job', 'string'),
   cash: defineColumn('cash', 'number'),
   bank: defineColumn('bank', 'number'),
   metadata: defineColumn('metadata', 'json', { nullable: true }),
@@ -168,8 +233,6 @@ export const vehicles = defineTable('public', 'vehicles', {
   plate: defineColumn('plate', 'string'),
   garage: defineColumn('garage', 'string'),
   fuel: defineColumn('fuel', 'number'),
-  body: defineColumn('body', 'number'),
-  engine: defineColumn('engine', 'number'),
   properties: defineColumn('properties', 'json', { nullable: true }),
 });
 

@@ -8,6 +8,7 @@ import { Tab, Tabs, TabsContent, TabsList, TabsTrigger } from "fumadocs-ui/compo
 import { TypeTable } from "fumadocs-ui/components/type-table";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { CurrentInlineTOC, DocsGraphView, DocsLink } from "./docs-runtime";
+import { Callout } from "./callout";
 
 export function getDocsMdxComponents() {
 	return {

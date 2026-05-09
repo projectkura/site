@@ -1,57 +1,88 @@
 ---
 title: Update
-description: Update existing rows using the query builder.
+description: Update existing rows with the Lua builder.
 ---
 
-## Basic update
+## Recommended style
 
-<Tabs items={["Lua", "TypeScript"]}>
-<Tab value="Lua">
 ```lua
-kura.db.update('users')
+local users = kura.db.tables.users
+
+local changed = kura.db.update(users)
+  :set({ username = 'jane' })
+  :where(op.eq(users.id, userId))
+  :await()
+```
+
+The generated table and column names above come from your own `schema.ts`. String-based calls still work:
+
+```lua
+local changed = kura.db.update('users')
   :set({ username = 'jane' })
   :where(op.eq('id', userId))
   :await()
 ```
-</Tab>
-<Tab value="TypeScript">
-```ts
-await db.update(users).set({ username: 'jane' }).where(eq('id', userId));
-```
-</Tab>
-</Tabs>
 
-## Returning
+## Returning helpers
 
-Add a `RETURNING` clause to the generated SQL:
+Use explicit helpers when you want returned rows instead of an affected-row count:
 
-<Tabs items={["Lua", "TypeScript"]}>
-<Tab value="Lua">
 ```lua
-kura.db.update('users')
+local users = kura.db.tables.users
+
+local row = kura.db.update(users)
   :set({ username = 'jane' })
-  :where(op.eq('id', userId))
-  :returning({ 'id', 'username' })
+  :where(op.eq(users.id, userId))
+  :returningOne({ users.id, users.username, users.createdAt })
+  :await()
+
+local updatedIds = kura.db.update(users)
+  :set({ username = 'archived' })
+  :where(op.isNull(users.deletedAt))
+  :returningRows({ users.id })
   :await()
 ```
-</Tab>
-<Tab value="TypeScript">
-```ts
-await db.update(users)
-  .set({ username: 'jane' })
-  .where(eq('id', userId))
-  .returning(['id', 'username']);
+
+Available helpers:
+
+- `:returningRows({ ... })`
+- `:returningOne({ ... })`
+- `:returningValue(column)`
+
+## Compatibility behavior
+
+`returning()` is still supported, but plain `await()` on `update()` remains compatibility-oriented:
+
+```lua
+local changed = kura.db.update(users)
+  :set({ username = 'jane' })
+  :where(op.eq(users.id, userId))
+  :returning({ users.id, users.username })
+  :await()
 ```
-</Tab>
-</Tabs>
 
 <Callout type="warn">
-  The current runtime still resolves update queries to the affected row count. `returning()` is compiled into SQL, but the returned Lua/TypeScript value is not yet the returned row set.
+  `returning()` is compiled into SQL, but plain `:await()` on `update()` still returns the affected row count for backwards compatibility. Use `returningRows`, `returningOne`, or `returningValue` when you want returned data.
 </Callout>
 
-## Update with raw SQL
+## Safety
 
-For complex updates, use `raw.update`:
+```lua
+local users = kura.db.tables.users
+
+kura.db.update(users)
+  :set({ banned = true })
+  :where(op.eq(users.id, userId))
+  :await()
+```
+
+<Callout type="warn">
+  `update()` without `where()` is still allowed today and will affect every row in the target table. KuraDB does not yet enforce an `allowAllRows()`-style guard, so add `where()` explicitly unless a full-table update is intentional.
+</Callout>
+
+## Complex updates
+
+For advanced PostgreSQL expressions, use raw SQL:
 
 ```lua
 local changed = kura.db.raw.update.await(
@@ -59,5 +90,3 @@ local changed = kura.db.raw.update.await(
   { userId }
 )
 ```
-
-`raw.update` returns the number of affected rows.

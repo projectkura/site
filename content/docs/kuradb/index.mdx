@@ -1,14 +1,45 @@
 ---
 title: KuraDB
-description: Asynchronous PostgreSQL wrapper with a typesafe Lua ORM for FiveM.
+description: Asynchronous PostgreSQL wrapper with a schema-driven Lua ORM for FiveM.
 ---
 
-KuraDB is the database layer for Project Kura. It provides a high-performance, asynchronous PostgreSQL interface for FiveM with a chainable query builder, raw SQL helpers, schema-driven migrations, and auto-generated Lua types.
+KuraDB is the PostgreSQL persistence layer for the Kura ecosystem. It combines:
+
+- asynchronous PostgreSQL access for FiveM
+- a chainable Lua query builder
+- generated Lua table and column references from `schema.ts`
+- schema-first migrations
+- raw SQL helpers when you need PostgreSQL features beyond the builder
 
 <Callout type="error" title="Compatibility">
   KuraDB is **not compatible** with `oxmysql`, `mysql-async`, or `ghmattimysql`. It is built exclusively for PostgreSQL. Remove any MySQL-based database resources before installing.
 </Callout>
 
+<Callout type="info" title="Schema-driven by design">
+  `kura.db.tables.*` is generated from **your own** `schema.ts`. The examples below use a `users` table only as an illustration. Replace it with whatever tables and field names your server defines.
+</Callout>
+
+## Recommended style
+
+Use generated table refs by default:
+
+```lua
+local users = kura.db.tables.users
+
+local exists = kura.db.select()
+  :from(users)
+  :where(op.eq(users.id, 42))
+  :exists()
+  :await()
+```
+
+That pattern is the recommended default for normal KuraDB usage:
+
+- generated table and column refs first
+- string identifiers only for compatibility and convenience
+- raw SQL only through the explicit `kura.db.raw.*` escape hatch
+- `:forUpdate()` only through transaction-scoped builders such as `tx.select()`
+- `:exists()` for boolean existence checks
 ---
 
 ## Install PostgreSQL
@@ -38,7 +69,7 @@ ensure kuradb
 ```
 
 <Callout type="warn" title="Special Characters">
-  Avoid `;` `,` `/` `?` `:` `@` `&` `=` `+` `$` `#` in your database password — they have special meaning in connection URIs.
+  Avoid `;` `,` `/` `?` `:` `@` `&` `=` `+` `$` `#` in your database password. They have special meaning in connection URIs.
 </Callout>
 
 For Kura-native servers, use this start order:
@@ -100,14 +131,50 @@ For LuaLS, add `kuradb/lib` to your workspace library paths once. Kura source ch
 
 ---
 
-## Your first query
+## Recommended Lua style
 
-Once your resource is set up, you can start querying immediately. `op` is available globally after loading `QueryBuilder.lua`.
+For Kura-native resources, prefer generated table references from `kura.db.tables`.
+
+String names are still supported for quick scripts and backwards compatibility, but generated tables give you:
+
+- autocomplete on tables and columns
+- safer refactors when your schema changes
+- better LuaLS information for row shapes
+- consistent Lua field names even when SQL names are snake_case
+
+```lua
+local users = kura.db.tables.users -- example only; comes from your schema.ts
+
+local rows = kura.db.select({ users.id, users.username, users.createdAt })
+  :from(users)
+  :where(op.eq(users.id, userId))
+  :await()
+
+print(rows[1].createdAt)
+```
+
+Quick-script and compatibility path:
+
+```lua
+local rows = kura.db.select({ 'id', 'username' })
+  :from('users')
+  :where(op.eq('id', userId))
+  :await()
+```
+
+Those string inputs are still quoted as SQL identifiers. They are not raw SQL fragments. For custom SQL expressions, aliases, or PostgreSQL-specific statements, use the explicit raw SQL APIs.
+
+## Your first query
 
 ```lua
 kura.db.ready(function()
-  local users = kura.db.select():from(kura.db.tables.users):await()
-  print(#users .. ' users loaded')
+  local users = kura.db.tables.users
+  local rows = kura.db.select({ users.id, users.username })
+    :from(users)
+    :limit(10)
+    :await()
+
+  print(('Loaded %s users'):format(#rows))
 end)
 ```
 
@@ -115,35 +182,75 @@ end)
 local users = kura.db.tables.users
 
 -- Insert
-kura.db.insert(users)
-  :values({ username = 'john', email = 'john@example.com' })
+local insertedId = kura.db.insert(users)
+  :values({
+    username = 'john',
+    email = 'john@example.com',
+  })
+  :returningValue(users.id)
   :await()
 
--- Select with filter
-local cops = kura.db.select({ 'id', 'username' })
+-- Select
+local row = kura.db.select({ users.id, users.username, users.createdAt })
   :from(users)
-  :where(op.eq('job', 'police'))
+  :where(op.eq(users.id, insertedId))
+  :single()
   :await()
 
 -- Update
-kura.db.update(users)
+local updated = kura.db.update(users)
   :set({ username = 'jane' })
-  :where(op.eq('id', userId))
+  :where(op.eq(users.id, insertedId))
   :await()
 
 -- Delete
-kura.db.delete(users)
-  :where(op.eq('id', userId))
+local deleted = kura.db.delete(users)
+  :where(op.eq(users.id, insertedId))
   :await()
 ```
+
+## Raw SQL is still available
+
+You do not need raw SQL for normal gameplay scripts.
+
+Raw SQL remains available as an escape hatch for:
+
+- complex joins and CTEs
+- `COPY`, `LISTEN`, `NOTIFY`, and other PostgreSQL-specific workflows
+- one-off migrations or maintenance tasks
+- framework-specific queries that do not fit the builder cleanly
+
+```lua
+local rows = kura.db.raw.query.await(
+  'SELECT * FROM "public"."users" WHERE id = $1',
+  { userId }
+)
+```
+
+## Roadmap
+
+The current builder covers the common CRUD and filtering path. These items are still planned and should be treated as roadmap, not current API:
+
+- builder-native `valuesMany()` for multi-row insert flows
+- explicit `allowAllRows()`-style guardrails for `update()` and `delete()`
+- PostgreSQL JSON and array operators in the builder
+- arithmetic and expression helpers for advanced updates
+
+## Kura architecture note
+
+Use KuraDB directly for persistence and custom resources.
+
+For core gameplay systems such as economy, inventory, vehicles, and characters, prefer higher-level Kura APIs when they exist. Those APIs can add validation, permissions, transactions, locks, sync, and audit behavior on top of the database layer.
 
 ---
 
 ## What's next
 
 - [Configuration](/docs/kuradb/configuration) — Convars, pool tuning, debug mode
-- [Schema](/docs/kuradb/schema) — Define tables in TypeScript
+- [Schema](/docs/kuradb/schema) — Define tables in TypeScript and generate Lua refs
 - [Migrations](/docs/kuradb/migrations) — Generate and apply SQL migrations
-- [Select](/docs/kuradb/select) — Query builder deep dive
-- [Raw SQL](/docs/kuradb/raw-sql) — Full PostgreSQL access
-- [Transactions](/docs/kuradb/transactions) — Atomic operations
+- [Select](/docs/kuradb/select) — Query builder usage and helpers
+- [Insert](/docs/kuradb/insert) — Inserts, returning helpers, and bulk insert notes
+- [Operators](/docs/kuradb/operators) — Filter operators with string and generated refs
+- [Transactions](/docs/kuradb/transactions) — Raw and builder-style transaction flows
+- [Raw SQL](/docs/kuradb/raw-sql) — Full PostgreSQL escape hatch

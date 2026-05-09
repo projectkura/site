@@ -1,51 +1,85 @@
 ---
 title: Delete
-description: Delete rows from your database using the query builder.
+description: Delete rows with the Lua builder.
 ---
 
-## Basic delete
-
-<Tabs items={["Lua", "TypeScript"]}>
-<Tab value="Lua">
-```lua
-kura.db.delete('users'):where(op.eq('id', userId)):await()
-```
-</Tab>
-<Tab value="TypeScript">
-```ts
-await db.delete(users).where(eq('id', userId));
-```
-</Tab>
-</Tabs>
-
-## Returning
-
-Add a `RETURNING` clause to the generated SQL:
+## Recommended style
 
 ```lua
-kura.db.delete('users')
+local users = kura.db.tables.users
+
+local changed = kura.db.delete(users)
+  :where(op.eq(users.id, userId))
+  :await()
+```
+
+String-based calls still work:
+
+```lua
+local changed = kura.db.delete('users')
   :where(op.eq('id', userId))
-  :returning({ 'id', 'username' })
+  :await()
+```
+
+## Returning helpers
+
+When you need deleted rows back, use the explicit helpers:
+
+```lua
+local users = kura.db.tables.users
+
+local deletedRow = kura.db.delete(users)
+  :where(op.eq(users.id, userId))
+  :returningOne({ users.id, users.username })
+  :await()
+
+local deletedIds = kura.db.delete(users)
+  :where(op.isNotNull(users.deletedAt))
+  :returningRows({ users.id })
+  :await()
+```
+
+Available helpers:
+
+- `:returningRows({ ... })`
+- `:returningOne({ ... })`
+- `:returningValue(column)`
+
+## Compatibility behavior
+
+`returning()` is still supported, but plain `await()` on `delete()` remains compatibility-oriented:
+
+```lua
+local changed = kura.db.delete(users)
+  :where(op.eq(users.id, userId))
+  :returning({ users.id, users.username })
   :await()
 ```
 
 <Callout type="warn">
-  The current runtime still resolves delete queries to the affected row count. `returning()` is compiled into SQL, but the returned Lua/TypeScript value is not yet the returned row set.
+  `returning()` is compiled into SQL, but plain `:await()` on `delete()` still returns the affected row count for backwards compatibility. Use `returningRows`, `returningOne`, or `returningValue` when you want returned data.
+</Callout>
+
+## Safety
+
+<Callout type="warn">
+  `delete()` without `where()` is still allowed today and will delete every row in the target table. KuraDB does not yet enforce an `allowAllRows()`-style guard, so add `where()` explicitly unless a full-table delete is intentional.
 </Callout>
 
 ## Soft deletes
 
-A common pattern is to use a `deleted_at` column instead of actually removing rows:
+A common pattern is to use a nullable timestamp instead of actually deleting rows:
 
 ```lua
-kura.db.update('users')
-  :set({ deleted_at = os.time() })
-  :where(op.eq('id', userId))
+local users = kura.db.tables.users
+
+kura.db.update(users)
+  :set({ deletedAt = os.time() })
+  :where(op.eq(users.id, userId))
   :await()
 
--- Query only active records
 local active = kura.db.select()
-  :from('users')
-  :where(op.isNull('deleted_at'))
+  :from(users)
+  :where(op.isNull(users.deletedAt))
   :await()
 ```

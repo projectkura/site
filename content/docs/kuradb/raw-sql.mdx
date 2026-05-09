@@ -1,12 +1,29 @@
 ---
 title: Raw SQL
-description: Execute raw PostgreSQL queries when you need full control.
+description: Execute raw PostgreSQL queries when you need the full escape hatch.
 ---
 
-The raw SQL API lives on `kura.db.raw`. Use it for complex queries, joins, CTEs, or anything the query builder doesn't cover.
+The raw SQL API lives on `kura.db.raw`.
+
+Use raw SQL when you need:
+
+- complex joins or CTEs
+- `COPY`, `LISTEN`, `NOTIFY`, or other PostgreSQL-specific features
+- advanced update expressions that the builder does not model yet
+- framework-specific SQL that does not map cleanly to the chainable builder
+
+For normal gameplay scripts, prefer the builder and generated schema refs first.
+
+<Callout type="info" title="Builder strings are not raw SQL">
+  Plain string table and column names in `kura.db.select()`, `insert()`, `update()`, `delete()`, and `op.*` are treated as quoted SQL identifiers for compatibility. They are not interpreted as raw SQL fragments, expressions, or aliases.
+</Callout>
 
 <Callout type="info">
-  PostgreSQL uses `$1`, `$2`, `$3` for parameter placeholders — not `?`.
+  PostgreSQL uses `$1`, `$2`, `$3` placeholders, not `?`.
+</Callout>
+
+<Callout type="info" title="Result shape">
+  Raw SQL results come back with PostgreSQL column names unless you alias them yourself in SQL. If you want Lua field-name remapping from `created_at` to `createdAt`, use the schema-aware builder instead.
 </Callout>
 
 ## query
@@ -52,7 +69,7 @@ local changed = kura.db.raw.update.await(
 
 ## insert
 
-Executes an insert and returns the inserted `id`. Automatically appends `RETURNING id` for simple inserts without an existing `RETURNING` clause.
+Executes an insert and returns the inserted `id`. KuraDB automatically appends `RETURNING id` for simple inserts without an existing `RETURNING` clause.
 
 ```lua
 local id = kura.db.raw.insert.await(
@@ -77,7 +94,7 @@ local results = kura.db.raw.execute.await(
 
 ## batch
 
-The fast path for repeated prepared statements. Uses PostgreSQL's pipeline mode for maximum throughput.
+The fast path for repeated prepared statements. Uses PostgreSQL pipeline mode for high throughput.
 
 ```lua
 local rows = kura.db.raw.batch.await(
@@ -104,12 +121,12 @@ local ids = kura.db.raw.insertMany.await('users', {
 ```
 
 <Callout type="info">
-  Always prefer `insertMany` over looping `insert()` — it generates a single multi-row statement.
+  `insertMany` is the recommended bulk-insert API today. There is not yet a builder-native `valuesMany()` helper.
 </Callout>
 
 ## Pub/Sub
 
-PostgreSQL `LISTEN` / `NOTIFY` exposed directly.
+PostgreSQL `LISTEN` / `NOTIFY` is exposed directly.
 
 ### listen
 

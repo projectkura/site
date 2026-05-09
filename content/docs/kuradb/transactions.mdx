@@ -1,34 +1,106 @@
 ---
 title: Transactions
-description: Atomic operations with imperative and declarative transaction APIs.
+description: Atomic operations with raw-query and builder-friendly transaction APIs.
 ---
 
-KuraDB provides two transaction APIs: **imperative** (callback-based) and **declarative** (query list).
+KuraDB provides two transaction styles:
 
-## Imperative transactions
+- `kura.db.transaction` for imperative transaction callbacks
+- `kura.db.raw.transaction` for declarative lists of raw SQL queries
 
-Use `kura.db.transaction` for full control. The callback receives a `query` function — return `true` to commit, `false` to rollback.
+The imperative callback now supports both:
+
+- the original raw `query(statement, values)` function
+- a second `tx` argument with transaction-scoped builders
+
+## Preferred Lua style
+
+Use `kura.db.transaction.await(...)` when you want an awaitable transaction flow:
+
+```lua
+local ok = kura.db.transaction.await(function(query, tx)
+  local accounts = kura.db.tables.accounts
+
+  local from = tx.select({ accounts.id, accounts.balance })
+    :from(accounts)
+    :where(op.eq(accounts.id, fromId))
+    :forUpdate()
+    :single()
+    :await()
+
+  local to = tx.select({ accounts.id, accounts.balance })
+    :from(accounts)
+    :where(op.eq(accounts.id, toId))
+    :forUpdate()
+    :single()
+    :await()
+
+  if from.balance < amount then
+    return false
+  end
+
+  tx.update(accounts)
+    :set({ balance = from.balance - amount })
+    :where(op.eq(accounts.id, fromId))
+    :await()
+
+  tx.update(accounts)
+    :set({ balance = to.balance + amount })
+    :where(op.eq(accounts.id, toId))
+    :await()
+
+  return true
+end)
+```
+
+<Callout type="info">
+  `accounts` is just an example table. The generated table names available inside `kura.db.tables` always come from your own `schema.ts`.
+</Callout>
+
+<Callout type="info" title="forUpdate requires tx">
+  `:forUpdate()` is only allowed on builders created from the transaction-scoped `tx` object. Calling `kura.db.select():forUpdate()` outside a transaction raises an error so row locks are not used accidentally in non-transactional code.
+</Callout>
+
+## Backwards-compatible callback transactions
+
+The original callable style still works:
 
 ```lua
 local ok = kura.db.transaction(function(query)
-  local balance = query(
+  local rows = query(
     'SELECT balance FROM "public"."accounts" WHERE id = $1',
     { fromId }
   )
 
-  if balance[1].balance < amount then
-    return false -- rollback
+  if rows[1].balance < amount then
+    return false
   end
 
   query('UPDATE "public"."accounts" SET balance = balance - $1 WHERE id = $2', { amount, fromId })
   query('UPDATE "public"."accounts" SET balance = balance + $1 WHERE id = $2', { amount, toId })
-  return true -- commit
+  return true
 end)
 ```
 
-## Declarative transactions
+If you want builder ergonomics, accept the second `tx` argument:
 
-Use `kura.db.raw.transaction` to pass a list of queries that should all succeed or all fail:
+```lua
+local ok = kura.db.transaction(function(query, tx)
+  local accounts = kura.db.tables.accounts
+
+  local row = tx.select({ accounts.id, accounts.balance })
+    :from(accounts)
+    :where(op.eq(accounts.id, fromId))
+    :single()
+    :await()
+
+  return row ~= nil
+end)
+```
+
+## Declarative raw transactions
+
+Use `kura.db.raw.transaction.await(...)` to pass a list of raw SQL queries that should all succeed or all fail:
 
 ```lua
 local ok = kura.db.raw.transaction.await({
@@ -43,18 +115,29 @@ local ok = kura.db.raw.transaction.await({
 })
 ```
 
+## What the transaction builder supports
+
+Inside the `tx` object you can currently use:
+
+- `tx.select(...)`
+- `tx.insert(...)`
+- `tx.update(...)`
+- `tx.delete(...)`
+
+Those builders compile SQL the same way as normal `kura.db.*` builders, but execute against the current transaction connection instead of the global pool.
+
 ## TypeScript
 
 ```ts
 import { kuradb } from '@your-scope/kuradb';
 
 const ok = await kuradb.startTransaction(async (query) => {
-  const result = await query(
+  const rows = await query(
     'SELECT balance FROM "public"."accounts" WHERE id = $1',
     [fromId]
   );
 
-  if (result[0].balance < amount) return false;
+  if (rows[0].balance < amount) return false;
 
   await query('UPDATE "public"."accounts" SET balance = balance - $1 WHERE id = $2', [amount, fromId]);
   await query('UPDATE "public"."accounts" SET balance = balance + $1 WHERE id = $2', [amount, toId]);
@@ -64,12 +147,14 @@ const ok = await kuradb.startTransaction(async (query) => {
 
 ## Transaction options
 
-Both APIs accept an options table:
+Both transaction APIs accept an options table:
 
 ```lua
-kura.db.raw.transaction.await(queries, nil, {
+kura.db.transaction.await(function(query, tx)
+  return true
+end, {
   isolationLevel = 'SERIALIZABLE',
-  readOnly = true,
+  readOnly = false,
 })
 ```
 
@@ -77,4 +162,10 @@ kura.db.raw.transaction.await(queries, nil, {
 |---|---|---|
 | `isolationLevel` | `string` | `READ COMMITTED`, `REPEATABLE READ`, `READ UNCOMMITTED`, `SERIALIZABLE` |
 | `readOnly` | `boolean` | Read-only transaction |
-| `deferrable` | `boolean` | Deferrable transaction (only with `SERIALIZABLE`) |
+| `deferrable` | `boolean` | Deferrable transaction, typically with `SERIALIZABLE` |
+
+## Current limitations
+
+<Callout type="warn">
+  The transaction builder does not yet expose PostgreSQL-specific expression helpers such as `increment`, `decrement`, JSON path updates, or generic SQL fragments. For advanced write expressions inside a transaction, use the raw `query(...)` callback directly.
+</Callout>
