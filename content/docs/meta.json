@@ -8,6 +8,7 @@
 		"---Resources---",
 		"core",
 		"lib",
+		"kura-ui",
 		"kuradb"
 	]
 }

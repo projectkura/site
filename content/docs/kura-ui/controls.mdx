@@ -1,0 +1,223 @@
+---
+title: Controls
+description: Reusable HUD control hints like ESC Back, with stacking, anchors, and server relay support.
+---
+
+## Recommended style
+
+Use stable ids when the same screen will update or hide its controls later.
+
+```lua
+local ui <const> = kura.ui
+
+local id = ui.controls.show({
+  id = 'garage:navigation',
+  anchor = 'bottom-right',
+  items = {
+    { input = 'ESC', label = 'Back' },
+    { input = 'ENTER', label = 'Select' },
+  },
+})
+```
+
+That is the recommended default:
+
+- stable ids for reusable flows
+- `bottom-right` as the default gameplay HUD position
+- one controls set with one or more items
+- `update()` for state changes instead of `hide()` plus `show()`
+
+## Basic show
+
+```lua
+ui.controls.show({
+  items = {
+    { input = 'ESC', label = 'Back' },
+  },
+})
+```
+
+When `id` is omitted, Kura UI generates one and returns it.
+
+## Fields
+
+`ui.controls.show(data)` accepts:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | `string?` | Optional stable id. Generated if omitted. |
+| `anchor` | `KuraUIAnchor?` | Placement anchor. Defaults to `bottom-right`. |
+| `offset` | `{ x?: number, y?: number }?` | Pixel offset after anchoring. |
+| `order` | `number?` | Sort order inside the anchor stack. Defaults to `100`. |
+| `orientation` | `'row'|'column'?` | Layout direction. Defaults to `row`. |
+| `items` | `KuraUIControlItem[]` | Visible control chips. Must not be empty. |
+
+Each item supports:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `input` | `string` | Key text like `ESC`, `E`, `F1`, `LMB`. |
+| `label` | `string` | Action text like `Back`, `Open`, `Confirm`. |
+
+## Anchors
+
+Kura UI supports 9 built-in anchors:
+
+```lua
+'top-left'
+'top-center'
+'top-right'
+'center-left'
+'center'
+'center-right'
+'bottom-left'
+'bottom-center'
+'bottom-right'
+```
+
+Example:
+
+```lua
+ui.controls.show({
+  id = 'phone:controls',
+  anchor = 'top-right',
+  offset = { x = 0, y = 6 },
+  items = {
+    { input = 'ESC', label = 'Close' },
+  },
+})
+```
+
+## Multiple items
+
+A controls set can render one or many buttons together:
+
+```lua
+ui.controls.show({
+  id = 'crafting:controls',
+  anchor = 'bottom-right',
+  items = {
+    { input = 'ESC', label = 'Back' },
+    { input = 'ENTER', label = 'Craft' },
+    { input = 'R', label = 'Preview' },
+  },
+})
+```
+
+## Orientation
+
+The default layout is a horizontal row. Use `column` if you want the set itself stacked vertically.
+
+```lua
+ui.controls.show({
+  id = 'admin:controls',
+  anchor = 'center-right',
+  orientation = 'column',
+  items = {
+    { input = 'UP', label = 'Previous' },
+    { input = 'DOWN', label = 'Next' },
+    { input = 'ENTER', label = 'Select' },
+  },
+})
+```
+
+## Update
+
+Use `update()` when the screen state changes but the same overlay should stay alive.
+
+```lua
+ui.controls.update('garage:navigation', {
+  items = {
+    { input = 'ESC', label = 'Close' },
+    { input = 'ENTER', label = 'Buy' },
+  },
+})
+```
+
+You can update:
+
+- `anchor`
+- `offset`
+- `order`
+- `orientation`
+- `items`
+
+Returns `true` when the set exists, otherwise `false`.
+
+## Hide
+
+Remove one controls set by id:
+
+```lua
+ui.controls.hide('garage:navigation')
+```
+
+Returns `true` when the set existed, otherwise `false`.
+
+## Clear and exists
+
+```lua
+if ui.controls.exists('garage:navigation') then
+  ui.controls.hide('garage:navigation')
+end
+
+ui.controls.clear()
+```
+
+`clear()` removes every controls set owned by the current resource only.
+
+## Stacking and ownership
+
+Control hints are not singletons.
+
+If multiple resources render into the same anchor:
+
+- Kura UI stacks them together
+- one resource does not overwrite another resource's controls
+- stopping a resource clears only that resource's owned overlays
+
+This is what allows a future confirmation modal and a controls set to be visible together.
+
+## Server relay
+
+Use the server API when a server resource wants to show HUD controls for target players.
+
+### `showFor(targets, data)`
+
+```lua
+local id = ui.controls.showFor(source, {
+  id = 'confirm:navigation',
+  anchor = 'bottom-right',
+  items = {
+    { input = 'ESC', label = 'Cancel' },
+    { input = 'ENTER', label = 'Confirm' },
+  },
+})
+```
+
+`targets` accepts:
+
+- a single server id
+- an array of server ids
+
+### `updateFor(targets, id, patch)`
+
+```lua
+ui.controls.updateFor({ source, targetId }, 'confirm:navigation', {
+  order = 50,
+})
+```
+
+### `hideFor(targets, id)`
+
+```lua
+ui.controls.hideFor(source, 'confirm:navigation')
+```
+
+### `clearFor(targets)`
+
+```lua
+ui.controls.clearFor(source)
+```
+
+Server relay ownership is tracked separately from client-owned overlays, so the two do not conflict internally.
