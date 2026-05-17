@@ -64,7 +64,7 @@ const user = await kuradb.single<{ id: string; license: string }>(
 | `kuradb.batch` | `T[]` | Pipeline multiple executions of the same statement |
 | `kuradb.insertMany` | `T` | Multi-row bulk insert |
 | `kuradb.transaction` | `boolean` | Declarative transaction (query list) |
-| `kuradb.startTransaction` | `boolean` | Imperative transaction (callback) |
+| `kuradb.startTransaction` | `T \| true \| false` | Imperative transaction (callback with payload-or-false return semantics) |
 | `kuradb.notify` | `boolean` | Send a PostgreSQL `NOTIFY` |
 | `kuradb.listen` | `Subscription` | Subscribe to a PostgreSQL channel |
 | `kuradb.unlisten` | `boolean` | Unsubscribe from a channel |
@@ -88,6 +88,26 @@ Or use the async version:
 
 ```ts
 await kuradb.awaitConnection();
+```
+
+## Imperative transactions
+
+`kuradb.startTransaction(...)` is generic and returns the callback outcome:
+
+- `false` rolls back and resolves to `false`
+- `undefined` commits and resolves to `true`
+- any other payload commits and resolves to that payload
+
+```ts
+const account = await kuradb.startTransaction(async (query) => {
+  const rows = await query(
+    'SELECT id, license FROM "public"."accounts" WHERE license = $1',
+    [license]
+  );
+
+  if (rows.length === 0) return false;
+  return rows[0];
+});
 ```
 
 ## Schema exports

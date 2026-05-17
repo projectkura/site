@@ -59,14 +59,14 @@ For Kura-native servers, use this start order:
 ```bash
 ensure kura-lib
 ensure kuradb
-ensure kura-core
 ensure kura-ui
+ensure kura-core
 ```
 
 Then add `ensure kura-ui` to your `server.cfg` if it is not already in your base startup list.
 
-<Callout type="warn" title="Start after kura-core">
-  `kura-ui` attaches to `kura.ui` through `kura-core`. Start `kura-ui` after `kura-core`, not before it.
+<Callout type="info" title="Boots before kura-core">
+  `kura-ui` can start before `kura-core`. `kura-core` attaches the shared `kura.ui` namespace later, while `kura-ui` still exposes its own export surface immediately.
 </Callout>
 
 ---

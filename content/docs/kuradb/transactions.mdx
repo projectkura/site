@@ -18,7 +18,7 @@ The imperative callback now supports both:
 Use `kura.db.transaction.await(...)` when you want an awaitable transaction flow:
 
 ```lua
-local ok = kura.db.transaction.await(function(query, tx)
+local transfer = kura.db.transaction.await(function(query, tx)
   local accounts = kura.db.tables.accounts
 
   local from = tx.select({ accounts.id, accounts.balance })
@@ -49,9 +49,18 @@ local ok = kura.db.transaction.await(function(query, tx)
     :where(op.eq(accounts.id, toId))
     :await()
 
-  return true
+  return {
+    fromBalance = from.balance - amount,
+    toBalance = to.balance + amount,
+  }
 end)
 ```
+
+The imperative callback uses payload-or-false return semantics:
+
+- `return false` rolls the transaction back and returns `false`
+- `return nil` commits the transaction and returns `true`
+- `return <payload>` commits the transaction and returns that payload
 
 <Callout type="info">
   `accounts` is just an example table. The generated table names available inside `kura.db.tables` always come from your own `schema.ts`.
@@ -66,7 +75,7 @@ end)
 The original callable style still works:
 
 ```lua
-local ok = kura.db.transaction(function(query)
+local result = kura.db.transaction(function(query)
   local rows = query(
     'SELECT balance FROM "public"."accounts" WHERE id = $1',
     { fromId }
@@ -78,14 +87,14 @@ local ok = kura.db.transaction(function(query)
 
   query('UPDATE "public"."accounts" SET balance = balance - $1 WHERE id = $2', { amount, fromId })
   query('UPDATE "public"."accounts" SET balance = balance + $1 WHERE id = $2', { amount, toId })
-  return true
+  return { transferred = amount }
 end)
 ```
 
 If you want builder ergonomics, accept the second `tx` argument:
 
 ```lua
-local ok = kura.db.transaction(function(query, tx)
+local result = kura.db.transaction(function(query, tx)
   local accounts = kura.db.tables.accounts
 
   local row = tx.select({ accounts.id, accounts.balance })
@@ -95,6 +104,19 @@ local ok = kura.db.transaction(function(query, tx)
     :await()
 
   return row ~= nil
+end)
+```
+
+If you do not need a payload, simply omit the return value and the transaction will commit with `true`:
+
+```lua
+local ok = kura.db.transaction.await(function(query, tx)
+  local accounts = kura.db.tables.accounts
+
+  tx.update(accounts)
+    :set({ lastSeenAt = os.time() })
+    :where(op.eq(accounts.id, accountId))
+    :await()
 end)
 ```
 
@@ -131,7 +153,7 @@ Those builders compile SQL the same way as normal `kura.db.*` builders, but exec
 ```ts
 import { kuradb } from '@your-scope/kuradb';
 
-const ok = await kuradb.startTransaction(async (query) => {
+const transfer = await kuradb.startTransaction(async (query) => {
   const rows = await query(
     'SELECT balance FROM "public"."accounts" WHERE id = $1',
     [fromId]
@@ -141,9 +163,15 @@ const ok = await kuradb.startTransaction(async (query) => {
 
   await query('UPDATE "public"."accounts" SET balance = balance - $1 WHERE id = $2', [amount, fromId]);
   await query('UPDATE "public"."accounts" SET balance = balance + $1 WHERE id = $2', [amount, toId]);
-  return true;
+  return { amount };
 });
 ```
+
+`kuradb.startTransaction(...)` follows the same contract as Lua:
+
+- `return false` rolls back and resolves to `false`
+- `return undefined` commits and resolves to `true`
+- `return payload` commits and resolves to that payload
 
 ## Transaction options
 
